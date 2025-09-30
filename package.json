@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "build": "next build",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:deploy": "opennextjs-cloudflare deploy"
+  },
+  "engines": { "node": ">=20" }
+}
+{
+  "devDependencies": {
+    "@lhci/cli": "^0.15.1"
+  }
+}

@@ -1,0 +1,49 @@
+name: app-ci
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build-and-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then npm ci; fi
+
+      - name: Build app
+        run: |
+          if [ -f package.json ]; then npm run build; fi
+
+      - name: Deploy to Cloudflare staging
+        run: |
+          if [ -f package.json ]; then npm run cf:build && npm run cf:deploy; fi
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install jb CLI (factory)
+        run: |
+          pip install -e .
+
+      - name: Run jb audit
+        run: |
+          for d in apps/*; do jb audit $(basename $d); done
+
+      - name: Upload Audit Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report
+          path: apps/*/audit/AuditReport.md
+
