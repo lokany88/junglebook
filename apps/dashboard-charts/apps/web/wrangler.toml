@@ -1,0 +1,15 @@
+name = "dashboard-charts"
+account_id = "8b3d1cb44ce66e54c469d84bf9a62fe7"
+main = ".open-next/worker.js"
+compatibility_date = "2024-11-21"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+
+[[d1_databases]]
+binding = "DB"
+database_name = "jb_dash"
+database_id = "<REPLACE_WITH_ID>"
