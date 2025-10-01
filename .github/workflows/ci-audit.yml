@@ -78,15 +78,18 @@ jobs:
           cache-dependency-path: |
             apps/${{ matrix.slug }}/package-lock.json
             apps/${{ matrix.slug }}/npm-shrinkwrap.json
-        continue-on-error: true   # 🔧 don’t fail cache issues
 
       - name: Install Node deps
         run: |
-          if [ -f package.json ]; then npm ci || true; else echo "No package.json – skipping"; fi
+          if [ -f package.json ]; then npm ci || true; fi
 
       - name: Build App
         run: |
-          if [ -f package.json ]; then npm run build || (echo "::warning::Build failed" && exit 0); fi
+          if [ -f package.json ]; then npm run build || (echo "::error::Build failed" && exit 1); fi
+
+      - name: Run Prettier
+        run: |
+          if [ -f package.json ]; then npx prettier --check . || true; fi
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -94,19 +97,48 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install JungleBook CLI
+      - name: Install JungleBook CLI + audit deps
         working-directory: .
         run: |
           pip install -e .
-          pip install black pip-audit || true
+          pip install black pip-audit pytest pytest-cov || true
 
-      - name: Run Black (Python formatting check)
-        run: black --check . || echo "::warning::Black formatting issues detected"
+      - name: Run Black (Python formatting)
+        run: black --check . || true
 
       - name: Run jb audit
         working-directory: .
+        run: jb audit "${{ matrix.slug }}" || true
+
+      - name: Ensure Audit Report exists
+        if: always()
         run: |
-          jb audit "${{ matrix.slug }}" || echo "⚠ jb audit soft-failed"
+          mkdir -p apps/${{ matrix.slug }}/audit
+          if [ ! -f apps/${{ matrix.slug }}/audit/AuditReport.md ]; then
+            echo "# Audit Report for ${{ matrix.slug }}" > apps/${{ matrix.slug }}/audit/AuditReport.md
+            echo "_Auto-generated placeholder (no results)_" >> apps/${{ matrix.slug }}/audit/AuditReport.md
+          fi
+
+      - name: Run Lighthouse
+        run: |
+          if [ -f package.json ]; then
+            npx lhci autorun --collect.staticDistDir=.next \
+              --upload.target=filesystem \
+              --upload.outputDir=./audit/lhci || true
+          fi
+
+      - name: Parse Lighthouse score
+        run: |
+          if [ -f audit/lhci/lhr-0.json ]; then
+            perf=$(jq '.categories.performance.score * 100' audit/lhci/lhr-0.json)
+            seo=$(jq '.categories.seo.score * 100' audit/lhci/lhr-0.json)
+            a11y=$(jq '.categories.accessibility.score * 100' audit/lhci/lhr-0.json)
+            if [ "$perf" -lt 90 ]; then echo "::error::Performance below threshold ($perf < 90)"; exit 1; fi
+            if [ "$seo" -lt 90 ]; then echo "::error::SEO below threshold ($seo < 90)"; exit 1; fi
+            if [ "$a11y" -lt 95 ]; then echo "::error::Accessibility below threshold ($a11y < 95)"; exit 1; fi
+          else
+            echo "No Lighthouse results found"
+          fi
 
       - name: Upload Audit Report
         if: always()
@@ -114,17 +146,7 @@ jobs:
         with:
           name: audit-${{ matrix.slug }}
           path: apps/${{ matrix.slug }}/audit/AuditReport.md
-          if-no-files-found: warn   # 🔧 warn instead of fail
-
-      - name: Run Lighthouse
-        run: |
-          if [ -d ".next" ]; then
-            npx lhci autorun --collect.staticDistDir=.next \
-              --upload.target=filesystem \
-              --upload.outputDir=./audit/lhci || echo "::warning::Lighthouse run failed"
-          else
-            echo "No .next build found – skipping Lighthouse"
-          fi
+          if-no-files-found: ignore
 
       - name: Upload Lighthouse results
         if: always()
@@ -132,7 +154,7 @@ jobs:
         with:
           name: lhci-${{ matrix.slug }}
           path: apps/${{ matrix.slug }}/audit/lhci/**
-          if-no-files-found: warn   # 🔧 warn instead of fail
+          if-no-files-found: ignore
 
       - name: Upload build artifacts
         if: always()
@@ -175,18 +197,6 @@ jobs:
             npm run cf:deploy || true
           fi
 
-      - name: D1 migrations (if schema present)
-        if: hashFiles('apps/${{ matrix.slug }}/db/schema.sql') != ''
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CF_D1_DB_NAME: ${{ secrets.CF_D1_DB_NAME }}
-        run: |
-          if [ -n "${CF_D1_DB_NAME:-}" ]; then
-            wrangler d1 execute "$CF_D1_DB_NAME" --file=db/schema.sql || true
-            if [ -f db/seed.sql ]; then wrangler d1 execute "$CF_D1_DB_NAME" --file=db/seed.sql || true; fi
-          fi
-
       - name: Staging summary
         if: always()
         run: |
@@ -222,6 +232,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          echo "Implement traffic split / version promotion if needed."
           echo "✅ Production promotion completed (placeholder)."
 
       - name: Production summary
