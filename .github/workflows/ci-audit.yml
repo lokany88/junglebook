@@ -12,7 +12,7 @@ on:
         type: boolean
         default: false
 
-# Prevent overlapping runs on the same branch
+# Prevent overlapping runs on same branch
 concurrency:
   group: junglebook-${{ github.ref }}
   cancel-in-progress: true
@@ -37,8 +37,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Find apps/*
         id: set-matrix
@@ -53,13 +52,11 @@ jobs:
             APPS+=("{\"slug\":\"$slug\"}")
           done
           if [ ${#APPS[@]} -eq 0 ]; then
-            echo "No apps/* found" >&2
             echo '{"include":[]}' > matrix.json
           else
             printf '{"include":[%s]}\n' "$(IFS=,; echo "${APPS[*]}")" > matrix.json
           fi
           echo "matrix=$(cat matrix.json)" >> "$GITHUB_OUTPUT"
-          cat matrix.json 
 
   build_audit:
     name: Build & Audit (${{ matrix.slug }})
@@ -72,8 +69,7 @@ jobs:
       run:
         working-directory: apps/${{ matrix.slug }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -84,13 +80,21 @@ jobs:
             apps/${{ matrix.slug }}/package-lock.json
             apps/${{ matrix.slug }}/npm-shrinkwrap.json
 
-      - name: Install Node deps (if Next.js)
+      - name: Install Node deps
         run: |
           if [ -f package.json ]; then npm ci; else echo "No package.json – skipping"; fi
 
       - name: Build
         run: |
           if [ -f package.json ]; then npm run build || (echo "::error::Build failed" && exit 1); fi
+
+      - name: Run ESLint
+        run: |
+          if [ -f package.json ]; then npx eslint . --ext .js,.jsx,.ts,.tsx || true; fi
+
+      - name: Run TypeScript type check
+        run: |
+          if [ -f tsconfig.json ]; then npx tsc --noEmit || true; fi
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -100,13 +104,43 @@ jobs:
 
       - name: Install JungleBook CLI
         working-directory: .
-        run: |
-          pip install -e .
+        run: pip install -e .
 
       - name: Run jb audit
         working-directory: .
+        run: jb audit "${{ matrix.slug }}"
+
+      - name: Run Flake8
         run: |
-          jb audit "${{ matrix.slug }}"
+          pip install flake8 && flake8 jb || true
+
+      - name: Python security scan
+        run: |
+          pip install pip-audit && pip-audit || true
+
+      - name: Node security scan
+        run: |
+          if [ -f package.json ]; then npm audit --audit-level=moderate || true; fi
+
+      - name: Run Jest tests with coverage
+        run: |
+          if [ -f package.json ]; then npm test -- --coverage || true; fi
+
+      - name: Run Pytest with coverage
+        run: |
+          pip install pytest pytest-cov || true
+          pytest --cov=jb --cov-report=xml || true
+
+      - name: Run Lighthouse CI
+        run: |
+          if [ -d ".open-next/assets" ]; then
+            npx lhci autorun \
+              --collect.staticDistDir=.open-next/assets \
+              --upload.target=filesystem \
+              --upload.outputDir=./audit/lhci
+          else
+            echo "No .open-next/assets – skipping Lighthouse"
+          fi
 
       - name: Upload Audit Report
         if: always()
@@ -115,7 +149,25 @@ jobs:
           name: audit-${{ matrix.slug }}
           path: apps/${{ matrix.slug }}/audit/AuditReport.md
 
-      - name: Upload build artifacts (OpenNext)
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.slug }}
+          path: |
+            apps/${{ matrix.slug }}/coverage/**
+            coverage.xml
+          if-no-files-found: ignore
+
+      - name: Upload Lighthouse results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lhci-${{ matrix.slug }}
+          path: apps/${{ matrix.slug }}/audit/lhci/**
+          if-no-files-found: ignore
+
+      - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -136,8 +188,7 @@ jobs:
       run:
         working-directory: apps/${{ matrix.slug }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -147,7 +198,7 @@ jobs:
       - name: Install Wrangler
         run: npm i -g wrangler@4.40.2
 
-      - name: Cloudflare preview deploy (OpenNext)
+      - name: Cloudflare preview deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -156,10 +207,10 @@ jobs:
             npm run cf:build
             npm run cf:deploy
           else
-            echo "No package.json – skipping Cloudflare deploy"
+            echo "No package.json – skipping deploy"
           fi
 
-      - name: D1 migrations (optional)
+      - name: D1 migrations (if schema present)
         if: hashFiles('apps/${{ matrix.slug }}/db/schema.sql') != ''
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -169,35 +220,29 @@ jobs:
           if [ -n "${CF_D1_DB_NAME:-}" ]; then
             wrangler d1 execute "$CF_D1_DB_NAME" --file=db/schema.sql || true
             if [ -f db/seed.sql ]; then wrangler d1 execute "$CF_D1_DB_NAME" --file=db/seed.sql || true; fi
-          else
-            echo "CF_D1_DB_NAME not set; skipping D1 execute"
           fi
 
-      - name: Staging URL summary
+      - name: Staging summary
         if: always()
         run: |
           echo "### ${{ matrix.slug }} deployed to staging ✅" >> $GITHUB_STEP_SUMMARY
-          echo "- Cloudflare Worker should be reachable at your service URL." >> $GITHUB_STEP_SUMMARY
 
   promote_production:
     name: Promote to Production (${{ matrix.slug }})
     runs-on: ubuntu-latest
     needs: deploy_staging
-    if: |
-      github.event_name == 'workflow_dispatch' &&
-      inputs.promote_prod == true
+    if: github.event_name == 'workflow_dispatch' && inputs.promote_prod == true
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     environment:
       name: production
-      url: https://yourdomain.com # <-- replace with your actual prod domain
+      url: https://example.com
     defaults:
       run:
         working-directory: apps/${{ matrix.slug }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -212,9 +257,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          echo "Implement traffic split / version promotion if you keep multiple versions."
-          echo "Alternatively, for OpenNext deploy, prod == latest deploy."
-          echo "✅ Production promotion step completed (placeholder)."
+          echo "Implement traffic split / version promotion if needed."
+          echo "✅ Production promotion completed (placeholder)."
 
       - name: Production summary
         if: always()
