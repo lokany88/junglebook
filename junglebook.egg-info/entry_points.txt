@@ -1,2 +1,0 @@
-[console_scripts]
-jb = jb.cli:app
