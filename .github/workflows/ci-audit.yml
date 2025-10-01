@@ -1,11 +1,37 @@
+name: ci-audit
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  NODE_VERSION: 20
+  PYTHON_VERSION: "3.11"
+
 jobs:
+  discover_apps:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: set-matrix
+        run: |
+          apps=$(ls -d apps/*/apps/web | sed 's|apps/||; s|/apps/web||')
+          echo "Found apps: $apps"
+          echo "matrix={\"slug\":[${apps// /,}]}" > matrix.json
+          echo "matrix=$(cat matrix.json)" >> $GITHUB_OUTPUT
+
   build_audit:
     name: Build & Audit (${{ matrix.slug }})
+    needs: discover_apps
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        slug: [dashboard-charts]
+      matrix: ${{ fromJson(needs.discover_apps.outputs.matrix) }}
 
     steps:
       - name: Check out code
@@ -35,7 +61,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install JungleBook CLI + audit deps
         run: pip install -e .[audit]
@@ -59,4 +85,12 @@ jobs:
         with:
           name: audit-${{ matrix.slug }}
           path: apps/${{ matrix.slug }}/audit/AuditReport.md
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.slug }}
+          path: |
+            apps/${{ matrix.slug }}/apps/web/.next/**
+            apps/${{ matrix.slug }}/apps/web/.open-next/**
 
