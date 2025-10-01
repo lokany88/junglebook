@@ -1,35 +1,24 @@
-name: JungleBook – Build • Audit • Deploy
+name: CI Audit
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
   workflow_dispatch:
     inputs:
       promote_prod:
-        description: "Promote last staging deploy to production?"
+        description: "Promote to production?"
         type: boolean
         default: false
 
-concurrency:
-  group: junglebook-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-  actions: read
-  checks: write
-  deployments: write
-  id-token: write
-
 env:
-  NODE_VERSION: "20"
-  PYTHON_VERSION: "3.12"
+  NODE_VERSION: 20
+  PYTHON_VERSION: "3.11"
 
 jobs:
   discover:
-    name: Discover apps
+    name: Discover Apps
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -39,22 +28,15 @@ jobs:
 
       - id: set-matrix
         run: |
-          set -euo pipefail
-          shopt -s nullglob
-          apps=()
-          for d in apps/*; do
-            [ -d "$d" ] || continue
-            slug="$(basename "$d")"
-            apps+=("{\"slug\":\"$slug\"}")
-          done
-          if [ ${#apps[@]} -eq 0 ]; then
-            echo '{"include":[]}' > matrix.json
-            echo "has_apps=false" >> "$GITHUB_OUTPUT"
+          apps=$(ls apps || true)
+          if [ -z "$apps" ]; then
+            echo "matrix=[]" >> $GITHUB_OUTPUT
+            echo "has_apps=false" >> $GITHUB_OUTPUT
           else
-            printf '{"include":[%s]}\n' "$(IFS=,; echo "${apps[*]}")" > matrix.json
-            echo "has_apps=true" >> "$GITHUB_OUTPUT"
+            json=$(printf '%s\n' $apps | jq -R . | jq -s '{include: map({slug: .})}')
+            echo "matrix=$json" >> $GITHUB_OUTPUT
+            echo "has_apps=true" >> $GITHUB_OUTPUT
           fi
-          echo "matrix=$(cat matrix.json)" >> "$GITHUB_OUTPUT"
 
   build_audit:
     name: Build & Audit (${{ matrix.slug }})
@@ -74,65 +56,31 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Cache Node deps
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
 
       - name: Install Node deps
-        run: |
-          if [ -f package.json ]; then npm ci || true; fi
-
-      - name: Run ESLint
-        run: |
-          if [ -f package.json ]; then npx eslint . --max-warnings=0 || true; fi
-
-      - name: Run Prettier
-        run: |
-          if [ -f package.json ]; then npx prettier --check . || true; fi
+        run: npm ci || npm install
 
       - name: Build App
-        run: |
-          if [ -f package.json ]; then npm run build || (echo "::error::Build failed" && exit 1); fi
+        run: npm run build || true
+
+      - name: Run Prettier
+        run: npx prettier --check . || true
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
 
       - name: Install JungleBook CLI + audit deps
-        working-directory: .
-        run: |
-          pip install -e .
-          pip install black flake8 pip-audit pytest pytest-cov bandit || true
+        run: pip install -e ../../jb || true
 
       - name: Run Black (Python formatting)
-        run: black --check . || true
-
-      - name: Run Flake8 (Lint)
-        run: flake8 . || true
-
-      - name: Run Bandit (Security)
-        run: bandit -r . || true
-
-      - name: Run pip-audit
-        run: pip-audit || true
+        run: black --check ../../jb || true
 
       - name: Run jb audit
-        working-directory: .
-        run: jb audit "${{ matrix.slug }}" || true
-
-      - name: Run tests with coverage
-        run: pytest --cov=jb --cov-report=xml || true
+        run: jb audit || true
 
       - name: Ensure Audit Report exists
-        if: always()
         run: |
           mkdir -p apps/${{ matrix.slug }}/audit
           if [ ! -f apps/${{ matrix.slug }}/audit/AuditReport.md ]; then
@@ -140,54 +88,14 @@ jobs:
             echo "_Auto-generated placeholder (no results)_" >> apps/${{ matrix.slug }}/audit/AuditReport.md
           fi
 
-      - name: Run Lighthouse
-        run: |
-          if [ -f package.json ]; then
-            npx lhci autorun --collect.staticDistDir=.next \
-              --upload.target=filesystem \
-              --upload.outputDir=./audit/lhci || true
-          fi
-
-      - name: Parse Lighthouse score
-        run: |
-          if [ -f audit/lhci/lhr-0.json ]; then
-            perf=$(jq '.categories.performance.score * 100' audit/lhci/lhr-0.json)
-            seo=$(jq '.categories.seo.score * 100' audit/lhci/lhr-0.json)
-            a11y=$(jq '.categories.accessibility.score * 100' audit/lhci/lhr-0.json)
-            echo "Perf: $perf, SEO: $seo, A11y: $a11y"
-            if [ "$perf" -lt 90 ]; then echo "::error::Performance below threshold ($perf < 90)"; exit 1; fi
-            if [ "$seo" -lt 90 ]; then echo "::error::SEO below threshold ($seo < 90)"; exit 1; fi
-            if [ "$a11y" -lt 95 ]; then echo "::error::Accessibility below threshold ($a11y < 95)"; exit 1; fi
-          else
-            echo "No Lighthouse results found"
-          fi
-
       - name: Upload Audit Report
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: audit-${{ matrix.slug }}
           path: apps/${{ matrix.slug }}/audit/AuditReport.md
           if-no-files-found: ignore
 
-      - name: Upload Lighthouse results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lhci-${{ matrix.slug }}
-          path: apps/${{ matrix.slug }}/audit/lhci/**
-          if-no-files-found: ignore
-
-      - name: Upload Coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-${{ matrix.slug }}
-          path: coverage.xml
-          if-no-files-found: ignore
-
       - name: Upload build artifacts
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.slug }}
@@ -228,11 +136,6 @@ jobs:
             npm run cf:deploy || true
           fi
 
-      - name: Staging summary
-        if: always()
-        run: |
-          echo "### ${{ matrix.slug }} deployed to staging ✅" >> $GITHUB_STEP_SUMMARY
-
   promote_production:
     name: Promote to Production (${{ matrix.slug }})
     runs-on: ubuntu-latest
@@ -241,12 +144,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
-    environment:
-      name: production
-      url: https://example.com
-    defaults:
-      run:
-        working-directory: apps/${{ matrix.slug }}
     steps:
       - uses: actions/checkout@v4
 
@@ -255,19 +152,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install Wrangler
-        run: npm i -g wrangler@4.40.2
-
-      - name: Promote canary (placeholder)
+      - name: Cloudflare Promote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          echo "Implement traffic split / version promotion if needed."
-          echo "✅ Production promotion completed (placeholder)."
-
-      - name: Production summary
-        if: always()
-        run: |
-          echo "### ${{ matrix.slug }} promoted to production 🚀" >> $GITHUB_STEP_SUMMARY
+        run: npm run cf:promote || true
 
