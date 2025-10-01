@@ -1,0 +1,36 @@
+name: "Main branch protection"
+enforcement: active
+target: branch
+include:
+  - main
+
+rules:
+  - type: creation
+    parameters: { allowed: false }
+
+  - type: update
+    parameters: { allowed: false }
+
+  - type: deletion
+    parameters: { allowed: false }
+
+  - type: linear_history
+    parameters: { required: true }
+
+  - type: force_push
+    parameters: { allowed: false }
+
+  - type: pull_request
+    parameters:
+      required: true
+      requiredApprovals: 1
+      dismissStaleApprovals: true
+      requireCodeOwnerReview: true
+      requireConversationResolution: true
+
+  - type: status_checks
+    parameters:
+      strict: true
+      required:
+        - ci-audit
+

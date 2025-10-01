@@ -30,3 +30,7 @@ apps/*/lhci/
 .DS_Store
 Thumbs.db
 
+# Ignore junk / scratch
+git/
+junglebook/
+
