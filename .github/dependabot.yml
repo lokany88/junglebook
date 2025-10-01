@@ -1,0 +1,35 @@
+version: 2
+updates:
+  # --- Node.js / Next.js dependencies ---
+  - package-ecosystem: npm
+    directory: "/" # root-level
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "next"
+        versions: [">=16.0.0"] # lock to 15.x for now until we upgrade JungleBook templates
+    labels:
+      - "dependencies"
+      - "npm"
+
+  # Also check nested app folders (each app/* has its own package.json)
+  - package-ecosystem: npm
+    directory: "/apps"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "npm"
+
+  # --- Python dependencies for JungleBook CLI ---
+  - package-ecosystem: pip
+    directory: "/" # looks at pyproject.toml/requirements.txt
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+
