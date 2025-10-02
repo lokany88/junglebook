@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+ matrix: ${{ fromJson('{"slug":["dashboard-charts"]}') }}
 
     defaults:
       run:
@@ -165,4 +165,3 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
