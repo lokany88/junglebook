@@ -6,18 +6,30 @@ on:
   pull_request:
 
 jobs:
-  # --- 1. Discover app slugs under apps/ ---
-  discover:
+  lint-format:
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
 
-      - id: set-matrix
-        run: |
-          APPS=$(ls apps || echo "")
-          echo "matrix={\"slug\":[${APPS// /,}]}" >> $GITHUB_OUTPUT
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            apps/${{ matrix.slug }}/**/package-lock.json
+            apps/${{ matrix.slug }}/**/npm-shrinkwrap.json
+
+      - name: Install deps
+        working-directory: apps/${{ matrix.slug }}/apps/web
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: apps/${{ matrix.slug }}/apps/web
+        run: npm run lint --if-present
+
+      - name: Run Prettier
+        working-directory: apps/${{ matrix.slug }}/apps/web
+        run: npm run format --if-present
 
   # --- 2. Build + Audit each app ---
   build-audit:
@@ -42,9 +54,10 @@ strategy:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: apps/${{ matrix.slug }}/package-lock.json
+  cache: 'npm'
+  cache-dependency-path: |
+    apps/${{ matrix.slug }}/**/package-lock.json
+    apps/${{ matrix.slug }}/**/npm-shrinkwrap.json
 
       - name: Install Node deps
         if: hashFiles('apps/${{ matrix.slug }}/package.json') != ''
