@@ -23,9 +23,12 @@ jobs:
   build-audit:
     needs: discover
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
- matrix: ${{ fromJson('{"slug":["dashboard-charts"]}') }}
+strategy:
+  matrix:
+    include: ${{ fromJson('{"slug":["dashboard-charts"]}') }}
+strategy:
+  matrix:
+    include: ${{ fromJson('{"slug":["dashboard-charts"]}') }}
 
     defaults:
       run:
