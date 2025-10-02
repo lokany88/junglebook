@@ -6,11 +6,32 @@ on:
       - main
 
 jobs:
-  audit:
+  discover:
     runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.set-apps.outputs.apps }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Discover apps
+        id: set-apps
+        run: |
+          apps=$(find apps -type f -name package.json -path "*/apps/*/package.json" \
+            | sed 's|/package.json||' | jq -R -s -c 'split("\n")[:-1]')
+          echo "apps=$apps" >> $GITHUB_OUTPUT
+
+  audit:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.discover.outputs.apps) }}
+
     defaults:
       run:
-        working-directory: apps/dashboard-charts/apps/web
+        working-directory: ${{ matrix.app }}
 
     steps:
       - name: Checkout code
@@ -21,7 +42,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: apps/dashboard-charts/apps/web/package-lock.json
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
 
       - name: Install dependencies
         run: npm ci --prefer-offline
@@ -37,6 +58,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: eslint-audit-report
-          path: apps/dashboard-charts/apps/web/eslint-report.log
+          name: eslint-audit-report-${{ matrix.app }}
+          path: ${{ matrix.app }}/eslint-report.log
 
