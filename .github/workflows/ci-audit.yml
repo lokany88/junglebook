@@ -26,16 +26,17 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline
 
-      - name: Run lint with PR annotations
-        run: npm run lint --if-present -- --format github
+      - name: Run lint with PR annotations + save log
+        run: |
+          npm run lint --if-present -- --format github | tee eslint-report.log
 
       - name: Run Prettier check
         run: npm run format --if-present -- --check
 
-      - name: Upload ESLint report (if exists)
-        if: failure()
+      - name: Upload ESLint report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: eslint-audit-report
-          path: ./eslint-report.log
+          path: apps/dashboard-charts/apps/web/eslint-report.log
 
