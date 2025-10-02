@@ -48,8 +48,8 @@ jobs:
 
       - run: npm ci --prefer-offline
 
-      - name: Run lint with PR annotations
-        run: npm run lint --if-present -- --format github
+- name: Run ESLint
+  run: npm run lint --if-present -- --format compact
 
       - name: Run format check
         run: npm run format --if-present

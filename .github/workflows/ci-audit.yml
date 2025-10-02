@@ -2,9 +2,9 @@ name: JungleBook – Build • Audit • Deploy
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -77,7 +77,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.x"
         continue-on-error: true
 
       - name: Install JungleBook CLI + audit deps
@@ -137,4 +137,3 @@ jobs:
           echo "Build/Audit: ${{ needs.build_audit.result }}"
           echo "Deploy Staging: ${{ needs.deploy_staging.result }}"
           echo "Promote Production: ${{ needs.promote_production.result }}"
-
