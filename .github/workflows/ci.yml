@@ -4,24 +4,31 @@ on:
   push:
   pull_request:
 
+# ✅ Give workflow permission to comment on PRs
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        app: [apps/dashboard-charts/apps/web] # add more apps here later
+        app: [apps/dashboard-charts/apps/web] # add more apps later if needed
 
     defaults:
       run:
         working-directory: ${{ matrix.app }}
 
     steps:
-      # 1. Checkout code
+      # 1. Checkout repo (fetch full history to avoid git errors)
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # 2. Setup Node.js with npm cache (using root lockfile)
+      # 2. Setup Node.js and cache npm using root lockfile
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -29,7 +36,7 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      # 3. Cache Next.js build (per app)
+      # 3. Cache Next.js build for speed
       - name: Cache Next.js build
         uses: actions/cache@v4
         with:
@@ -42,7 +49,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # 5. Lint (writes JSON report)
+      # 5. Lint and save JSON report
       - name: Lint
         run: npm run lint -- --format json --output-file eslint-report.json
         continue-on-error: true
@@ -53,7 +60,7 @@ jobs:
           name: eslint-report-apps-dashboard-charts-apps-web
           path: apps/dashboard-charts/apps/web/eslint-report.json
 
-      # 6. Type check (writes text report)
+      # 6. Type check and save report
       - name: Type check
         run: npm run type-check -- --pretty false --noEmit > tsc-report.txt 2>&1
         continue-on-error: true
@@ -64,7 +71,7 @@ jobs:
           name: tsc-report-apps-dashboard-charts-apps-web
           path: apps/dashboard-charts/apps/web/tsc-report.txt
 
-      # 7. Comment summary on PR (safe, never fails)
+      # 7. Comment summary on PR (safe)
       - name: Comment summary on PR (lint & type-check)
         if: github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
