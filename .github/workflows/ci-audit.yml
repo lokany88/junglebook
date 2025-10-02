@@ -54,10 +54,16 @@ jobs:
       - name: Run Prettier check
         run: npm run format --if-present -- --check
 
+      - name: Sanitize artifact name
+        id: sanitize
+        run: |
+          safe_name=$(echo "${{ matrix.app }}" | tr '/' '-')
+          echo "safe_name=$safe_name" >> $GITHUB_OUTPUT
+
       - name: Upload ESLint report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: eslint-audit-report-${{ matrix.app//\//- }}
+          name: eslint-audit-report-${{ steps.sanitize.outputs.safe_name }}
           path: ${{ matrix.app }}/eslint-report.log
 
