@@ -1,12 +1,19 @@
-"use client";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+'use client';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 const data = [
-  { name: "Jan", revenue: 4000 },
-  { name: "Feb", revenue: 3000 },
-  { name: "Mar", revenue: 5000 },
-  { name: "Apr", revenue: 4780 },
-  { name: "May", revenue: 5890 },
+  { name: 'Jan', revenue: 4000 },
+  { name: 'Feb', revenue: 3000 },
+  { name: 'Mar', revenue: 5000 },
+  { name: 'Apr', revenue: 4780 },
+  { name: 'May', revenue: 5890 },
 ];
 
 export default function ChartCard() {
@@ -17,10 +24,14 @@ export default function ChartCard() {
           <XAxis dataKey="name" stroke="#888" />
           <YAxis stroke="#888" />
           <Tooltip />
-          <Line type="monotone" dataKey="revenue" stroke="#4ade80" strokeWidth={2} />
+          <Line
+            type="monotone"
+            dataKey="revenue"
+            stroke="#4ade80"
+            strokeWidth={2}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>
   );
 }
-

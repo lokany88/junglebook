@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 function LoginPageContent() {
   const params = useSearchParams();
-  const token = params.get("token");
+  const token = params.get('token');
 
   return (
     <div>
@@ -22,4 +22,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-

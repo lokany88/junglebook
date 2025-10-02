@@ -1,7 +1,7 @@
-import FinancialSnapshot from "../components/FinancialSnapshot";
-import ActiveProjects from "../components/ActiveProjects";
-import TaskQueue from "../components/TaskQueue";
-import QuickActions from "../components/QuickActions";
+import FinancialSnapshot from '../components/FinancialSnapshot';
+import ActiveProjects from '../components/ActiveProjects';
+import TaskQueue from '../components/TaskQueue';
+import QuickActions from '../components/QuickActions';
 
 export default function DashboardPage() {
   return (
@@ -20,4 +20,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

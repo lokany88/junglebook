@@ -1,4 +1,4 @@
-import ChartCard from "./ChartCard";
+import ChartCard from './ChartCard';
 
 export default function FinancialSnapshot() {
   return (
@@ -22,4 +22,3 @@ export default function FinancialSnapshot() {
     </div>
   );
 }
-
