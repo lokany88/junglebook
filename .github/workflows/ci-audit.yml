@@ -58,6 +58,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: eslint-audit-report-${{ matrix.app }}
+          name: eslint-audit-report-${{ matrix.app//\//- }}
           path: ${{ matrix.app }}/eslint-report.log
 
