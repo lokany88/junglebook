@@ -1,13 +1,13 @@
 {
-  "scripts": {
-    "build": "next build",
-    "cf:build": "opennextjs-cloudflare build",
-    "cf:deploy": "opennextjs-cloudflare deploy"
+  "engines": {
+    "node": ">=20"
   },
-  "engines": { "node": ">=20" }
-}
-{
   "devDependencies": {
-    "@lhci/cli": "^0.15.1"
+    "prettier": "^3.2.5",
+    "eslint": "^8.57.0"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write ."
   }
 }
