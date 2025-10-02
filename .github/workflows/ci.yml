@@ -1,54 +1,72 @@
-name: ci
+kkname: ci
 
 on:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  lint-format:
-    name: Lint & Format
+  discover:
     runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.set-apps.outputs.apps }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Discover apps
+        id: set-apps
+        run: |
+          apps=$(find apps -type f -name package.json -path "*/apps/*/package.json" \
+            | sed 's|/package.json||' | jq -R -s -c 'split("\n")[:-1]')
+          echo "apps=$apps" >> $GITHUB_OUTPUT
+
+  build_audit:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.discover.outputs.apps) }}
+
     defaults:
       run:
-        working-directory: apps/dashboard-charts/apps/web
+        working-directory: ${{ matrix.app }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: apps/dashboard-charts/apps/web/package-lock.json
+          cache: npm
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm ci --prefer-offline
 
-      - name: Run ESLint
-        run: npm run lint --if-present -- --format compact || true
+      - name: Build app
+        run: npm run build --if-present
 
-      - name: Run Prettier
-        run: npm run format --if-present || true
-
-      - name: Save ESLint report
-        if: always()
+      - name: Run lint with PR annotations + save log
         run: |
-          npm run lint --if-present -- --format stylish > eslint-report.log || true
+          npm run lint --if-present -- --format github | tee eslint-report.log
+
+      - name: Run Prettier check
+        run: npm run format --if-present -- --check
+
+      - name: Sanitize artifact name
+        id: sanitize
+        run: |
+          safe_name=$(echo "${{ matrix.app }}" | tr '/' '-')
+          echo "safe_name=$safe_name" >> $GITHUB_OUTPUT
 
       - name: Upload ESLint report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: eslint-report
-          path: apps/dashboard-charts/apps/web/eslint-report.log
-          if-no-files-found: ignore
-
-      - name: Status summary
-        if: always()
-        run: |
-          echo "### Lint & Format Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Warnings/errors are logged in the artifact **eslint-report**" >> $GITHUB_STEP_SUMMARY
+          name: eslint-report-${{ steps.sanitize.outputs.safe_name }}
+          path: ${{ matrix.app }}/eslint-report.log
 
