@@ -1,36 +1,54 @@
-# ---- Python ----
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.egg-info/
-*.egg
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+.next/
+out/
 dist/
 build/
-.venv/
+.cache/
 
-# ---- Node / Next.js ----
-node_modules/
-.npm/
-.next/
-.open-next/
+# Env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
 *.log
+logs
+*.pid
+*.seed
+*.pid.lock
 
-# ---- JungleBook factory artifacts ----
-apps/*/audit/
-apps/*/lhci/
-*.db
-
-# ---- Cloudflare / Wrangler ----
-.dev.vars
-*.secrets
-*.wrangler/
-
-# ---- System / OS ----
+# OS generated
 .DS_Store
 Thumbs.db
 
-# Ignore junk / scratch
-git/
-junglebook/
+# IDEs/editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Coverage / testing
+coverage/
+*.lcov
+
+# Lockfiles (only keep the root one)
+apps/**/package-lock.json
+!package-lock.json
+
+# Accidental scripts & configs
+apps/**/fix.sh
+apps/**/postcss.config.js
+
+# Misc
+*.tgz
+*.tar.gz
 
