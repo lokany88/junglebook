@@ -1,0 +1,168 @@
+name: JungleBook – Build • Audit • Deploy
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  # --- 1. Discover app slugs under apps/ ---
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: set-matrix
+        run: |
+          APPS=$(ls apps || echo "")
+          echo "matrix={\"slug\":[${APPS// /,}]}" >> $GITHUB_OUTPUT
+
+  # --- 2. Build + Audit each app ---
+  build-audit:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.slug }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --- Node setup + caching ---
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/${{ matrix.slug }}/package-lock.json
+
+      - name: Install Node deps
+        if: hashFiles('apps/${{ matrix.slug }}/package.json') != ''
+        run: npm ci
+
+      - name: Build (Next.js/OpenNext)
+        if: hashFiles('apps/${{ matrix.slug }}/package.json') != ''
+        run: npm run build
+
+      # --- Python setup (for jb CLI & audits) ---
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install JungleBook CLI
+        run: pip install -e .
+
+      # --- Run audit ---
+      - name: Run jb audit
+        run: jb audit ${{ matrix.slug }}
+
+      - name: Upload Audit Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report-${{ matrix.slug }}
+          path: apps/${{ matrix.slug }}/audit/AuditReport.md
+
+      - name: Upload build artifacts
+        if: hashFiles('apps/${{ matrix.slug }}/.open-next/**') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.slug }}
+          path: apps/${{ matrix.slug }}/.open-next/**
+
+  # --- 3. Formatting Checks (Prettier + Black) ---
+  lint-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js for Prettier
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install Prettier
+        run: npm install -D prettier
+
+      - name: Run Prettier check
+        run: npx prettier --check "apps/**/*.js" "apps/**/*.ts" "apps/**/*.tsx"
+
+      - name: Setup Python for Black
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Black
+        run: pip install black
+
+      - name: Run Black check
+        run: black --check jb
+
+  # --- 4. Deploy to Cloudflare (Staging) ---
+  deploy-staging:
+    needs: [build-audit, lint-format]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.slug }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps (wrangler)
+        run: npm install -g wrangler
+
+      - name: Deploy to Cloudflare staging
+        run: wrangler deploy --env staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  # --- 5. Promote to Production ---
+  deploy-prod:
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.slug }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps (wrangler)
+        run: npm install -g wrangler
+
+      - name: Deploy to Cloudflare production
+        run: wrangler deploy --env production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
