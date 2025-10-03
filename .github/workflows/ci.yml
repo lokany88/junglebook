@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - main
+      - ci-upgrade
 
 jobs:
   build:
@@ -23,18 +24,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: package-lock.json
 
       # Install root + workspace dependencies
       - name: Install dependencies
         run: npm install
 
-      # Run auto-fix script to patch PostCSS/Tailwind/Next.js issues
-      - name: Run fix script
+      # Run import fix script (normalize Sidebar/Topbar paths)
+      - name: Fix layout.tsx imports
         run: |
-          chmod +x ./fix.sh
-          ./fix.sh
+          chmod +x ./fix-imports.sh
+          ./fix-imports.sh
 
       # Build web workspace
       - name: Build web app
