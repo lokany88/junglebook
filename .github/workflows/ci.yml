@@ -14,9 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Setup Node.js with npm cache
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -24,15 +26,25 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies (root + workspaces)
+      # Install root + workspace dependencies
+      - name: Install dependencies
         run: npm install
 
+      # Run auto-fix script to patch PostCSS/Tailwind/Next.js issues
+      - name: Run fix script
+        run: |
+          chmod +x ./fix.sh
+          ./fix.sh
+
+      # Build web workspace
       - name: Build web app
         run: npm run build:web
 
-      - name: Lint
+      # Run lint checks
+      - name: Lint web app
         run: npm run lint:web
 
-      - name: Type check
+      # Run TypeScript type-check
+      - name: Type check web app
         run: npm run type-check:web
 
