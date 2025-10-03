@@ -1,12 +1,38 @@
-- name: Install dependencies
-  run: npm install
+name: CI
 
-- name: Build web app
-  run: npm run build:web
+on:
+  push:
+    branches:
+      - main
+      - ci-upgrade
+  pull_request:
+    branches:
+      - main
 
-- name: Lint
-  run: npm run lint:web
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-- name: Type check
-  run: npm run type-check:web
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (root + workspaces)
+        run: npm install
+
+      - name: Build web app
+        run: npm run build:web
+
+      - name: Lint
+        run: npm run lint:web
+
+      - name: Type check
+        run: npm run type-check:web
 
