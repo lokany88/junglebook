@@ -1,44 +1,12 @@
-name: CI
+- name: Install dependencies
+  run: npm install
 
-on:
-  push:
-    branches:
-      - main
-      - ci-upgrade
-  pull_request:
+- name: Build web app
+  run: npm run build:web
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
+- name: Lint
+  run: npm run lint:web
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # full history for git commands
-          submodules: false
+- name: Type check
+  run: npm run type-check:web
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: package-lock.json   # ✅ root lockfile only
-
-      - name: Install dependencies (root, with workspaces)
-        run: npm ci
-
-      - name: Build web app
-        run: npm run build
-        working-directory: apps/dashboard-charts/apps/web
-
-      - name: Run lint
-        run: npm run lint
-        working-directory: apps/dashboard-charts/apps/web
-
-      - name: Run type-check
-        run: npm run type-check
-        working-directory: apps/dashboard-charts/apps/web

@@ -1,12 +1,12 @@
 {
   "name": "web",
   "version": "0.1.0",
-  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare deploy"
@@ -42,6 +42,7 @@
     "typescript": "^5"
   },
   "engines": {
-    "node": "^20"
+    "node": ">=20"
   }
 }
+

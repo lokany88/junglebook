@@ -1,4 +1,9 @@
 {
+  "name": "junglebook-root",
+  "private": true,
+  "workspaces": [
+    "apps/dashboard-charts/apps/web"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -8,6 +13,10 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "build:web": "npm run build --workspace web",
+    "lint:web": "npm run lint --workspace web",
+    "type-check:web": "npm run type-check --workspace web"
   }
 }
+
