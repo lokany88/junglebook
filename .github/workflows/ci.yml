@@ -6,20 +6,17 @@ on:
       - main
       - ci-upgrade
   pull_request:
-    branches:
-      - main
-      - ci-upgrade
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repository
+      # 1. Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Setup Node.js
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -27,11 +24,24 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      # Install dependencies (root + workspace)
+      # 3. Install dependencies (root, workspace aware)
       - name: Install dependencies
         run: npm install
 
-      # Run CI pipeline (build + lint + type-check for web workspace)
-      - name: Run CI for web app
+      # 4. Clean Next.js cache to avoid stale configs
+      - name: Clean Next.js cache
+        run: rm -rf apps/dashboard-charts/apps/web/.next
+
+      # 5. Verify PostCSS + Tailwind setup before build
+      - name: Verify PostCSS config
+        run: |
+          if ! grep -q "@tailwindcss/postcss" apps/dashboard-charts/apps/web/postcss.config.js; then
+            echo "❌ PostCSS config missing @tailwindcss/postcss"
+            exit 1
+          fi
+          echo "✅ PostCSS config is correct"
+
+      # 6. Run full CI pipeline (build + lint + type-check)
+      - name: Run CI pipeline
         run: npm run ci:web
 
