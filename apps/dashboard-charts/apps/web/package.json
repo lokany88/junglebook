@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0"
     "type-check": "tsc --noEmit",
     "ci:web": "npm run build:web && npm run lint:web && npm run type-check:web",
     "build:web": "npm run build --workspace web",
