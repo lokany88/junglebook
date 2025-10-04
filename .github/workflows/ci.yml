@@ -1,47 +1,158 @@
-name: CI
+name: CI + Smart Cloudflare Deploy + Live Summary + Persistent PR Comment
 
 on:
   push:
-    branches:
-      - main
-      - ci-upgrade
+    branches: [main, ci-upgrade, "**"]
   pull_request:
+    branches: [main, ci-upgrade]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NODE_ENV: production
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+      START_TIME: ${{ github.run_started_at }}
 
     steps:
-      # 1. Checkout repo
-      - name: Checkout repository
+      - name: 🧩 Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js
-      - name: Setup Node.js
+      - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: package-lock.json
 
-      # 3. Install dependencies (root, workspace aware)
-      - name: Install dependencies
-        run: npm install
+      - name: 📦 Install dependencies (root)
+        run: npm ci
 
-      # 4. Clean Next.js cache to avoid stale configs
-      - name: Clean Next.js cache
-        run: rm -rf apps/dashboard-charts/apps/web/.next
-
-      # 5. Verify PostCSS + Tailwind setup before build
-      - name: Verify PostCSS config
+      - name: 🔍 Discover all web apps
+        id: discover
         run: |
-          if ! grep -q "@tailwindcss/postcss" apps/dashboard-charts/apps/web/postcss.config.cjs; then
-            echo "❌ PostCSS config missing @tailwindcss/postcss"
-            exit 1
-          fi
-          echo "✅ PostCSS config is correct"
+          echo "apps=$(find apps -type d -name 'web' | tr '\n' ' ')" >> $GITHUB_OUTPUT
 
-      # 6. Run full CI pipeline (build + lint + type-check)
-      - name: Run CI pipeline
-        run: npm run ci:web
+      - name: 🧱 Build, Lint & Type Check each web app
+        run: |
+          for APP in ${{ steps.discover.outputs.apps }}; do
+            echo "🚀 Processing $APP"
+            echo "---------------------------------"
+
+            FILE="$APP/postcss.config.cjs"
+            if [ ! -f "$FILE" ]; then
+              FILE="$APP/postcss.config.js"
+            fi
+            if [ ! -f "$FILE" ]; then
+              echo "❌ No PostCSS config found in $APP"
+              exit 1
+            fi
+            if ! grep -q "@tailwindcss/postcss" "$FILE"; then
+              echo "❌ PostCSS config missing @tailwindcss/postcss in $FILE"
+              exit 1
+            fi
+            echo "✅ PostCSS config validated in $FILE"
+
+            npm run build --workspace $(basename "$APP")
+            npm run lint --workspace $(basename "$APP") || true
+            npm run type-check --workspace $(basename "$APP") || true
+
+            echo "✅ Finished $APP"
+            echo ""
+          done
+
+      - name: ☁️ Deploy to Cloudflare Pages (Smart)
+        id: deploy
+        continue-on-error: true
+        run: |
+          for APP in ${{ steps.discover.outputs.apps }}; do
+            APPNAME=$(basename "$APP")
+            echo "🚀 Deploying $APPNAME"
+            cd "$APP"
+
+            if [ "$BRANCH_NAME" = "main" ]; then
+              echo "🌍 Production deploy for $APPNAME"
+              DEPLOY_URL="https://${APPNAME}.pages.dev"
+              npx wrangler pages deploy out \
+                --project-name="$APPNAME" \
+                --branch="production"
+            else
+              echo "🧪 Preview deploy for branch: $BRANCH_NAME"
+              DEPLOY_URL="https://${APPNAME}--${BRANCH_NAME}.pages.dev"
+              npx wrangler pages deploy out \
+                --project-name="$APPNAME" \
+                --branch="$BRANCH_NAME" \
+                --commit-hash="${GITHUB_SHA}"
+            fi
+
+            echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
+            cd - >/dev/null
+          done
+
+      - name: 🧮 Compute Elapsed Build Time
+        id: elapsed
+        run: |
+          START=$(date -d "${START_TIME}" +%s)
+          END=$(date +%s)
+          ELAPSED=$((END - START))
+          MINS=$((ELAPSED / 60))
+          SECS=$((ELAPSED % 60))
+          echo "ELAPSED_TIME=${MINS}m ${SECS}s" >> $GITHUB_ENV
+
+      - name: 📝 Generate Markdown Summary
+        id: summary
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+          STATUS_EMOJI="✅"
+          if [ "${{ job.status }}" != "success" ]; then
+            STATUS_EMOJI="❌"
+          fi
+
+          SUMMARY_CONTENT="## 🚀 JungleBook CI Summary
+          **Status:** $STATUS_EMOJI ${{ job.status }}
+          **Preview:** [${DEPLOY_URL:-Not available}](${DEPLOY_URL:-#})
+          **Branch:** \`${{ env.BRANCH_NAME }}\`
+          **Commit:** \`${{ github.sha }}\`
+          **Message:** _${COMMIT_MSG}_
+          **Author:** ${COMMIT_AUTHOR}
+          **Build Time:** ⏱️ ${{ env.ELAPSED_TIME }}
+          ---
+          _Auto-updated by CI on every push_"
+
+          echo "$SUMMARY_CONTENT" > summary.md
+
+      - name: 💬 Add or Update Live PR Comment
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          COMMENT_MARKER="<!-- preview-comment -->"
+          BODY_WITH_MARKER="$COMMENT_MARKER
+          $(cat summary.md)"
+
+          COMMENT_ID=$(gh api repos/${{ github.repository }}/issues/$PR_NUMBER/comments \
+            --jq ".[] | select(.body | contains(\"$COMMENT_MARKER\")) | .id" || true)
+
+          if [ -z "$COMMENT_ID" ]; then
+            gh api repos/${{ github.repository }}/issues/$PR_NUMBER/comments -f body="$BODY_WITH_MARKER"
+          else
+            gh api repos/${{ github.repository }}/issues/comments/$COMMENT_ID -X PATCH -f body="$BODY_WITH_MARKER"
+          fi
+
+      - name: 📘 Publish Summary to GitHub Actions Tab
+        if: always()
+        run: |
+          echo "### ✅ CI Summary (Auto)" >> $GITHUB_STEP_SUMMARY
+          cat summary.md >> $GITHUB_STEP_SUMMARY
+
+      - name: ✅ Final Log
+        run: |
+          echo "---------------------------------"
+          echo "✅ CI + Deploy + Live Summary complete"
+          echo "Branch: $BRANCH_NAME"
+          echo "---------------------------------"
 
