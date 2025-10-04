@@ -8,20 +8,13 @@ export default function AIConsolePage() {
   async function run(e: React.FormEvent) {
     e.preventDefault();
     // Placeholder: wire to Architect/Interpreter/Audit AI later
-    setAnswer(
-      `Mock AI: I would analyze "${prompt}" and choose the best template.`,
-    );
+    setAnswer(`Mock AI: I would analyze "${prompt}" and choose the best template.`);
   }
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>
-        AI Console
-      </h1>
-      <form
-        onSubmit={run}
-        style={{ display: 'flex', gap: 8, marginBottom: 16 }}
-      >
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>AI Console</h1>
+      <form onSubmit={run} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         <input
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}

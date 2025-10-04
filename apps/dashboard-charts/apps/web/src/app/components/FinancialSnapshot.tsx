@@ -1,5 +1,5 @@
-import React from "react";
-import ChartCard from "./ChartCard";
+import React from 'react';
+import ChartCard from './ChartCard';
 
 export default function FinancialSnapshot() {
   return (
@@ -23,4 +23,3 @@ export default function FinancialSnapshot() {
     </div>
   );
 }
-

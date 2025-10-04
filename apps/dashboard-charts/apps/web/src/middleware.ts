@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(req: NextRequest) {
+export function middleware(_req: NextRequest) {
   // Temporary bypass: let everyone in
   return NextResponse.next();
 

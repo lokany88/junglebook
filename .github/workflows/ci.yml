@@ -1,89 +1,89 @@
-name: CI
+name: JungleBook Monorepo CI
 
 on:
   push:
-    branches: [ci-upgrade, main, master]
+    branches: [main, master]
   pull_request:
-    branches: [ci-upgrade, main, master]
+    branches: [main, master]
 
 jobs:
-  build:
+  discover:
+    name: Discover Buildable Workspaces
     runs-on: ubuntu-latest
-    env:
-      NODE_ENV: production
-      CI: true
+    outputs:
+      apps: ${{ steps.filter.outputs.apps }}
 
     steps:
-      # --------------------------------------------------------
-      # 1. Checkout repository
-      # --------------------------------------------------------
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --------------------------------------------------------
-      # 2. Set up Node.js environment
-      # --------------------------------------------------------
+      - name: Discover all workspaces
+        id: discover
+        run: |
+          echo "Scanning for workspaces..."
+          apps=$(find apps -type f -name package.json -exec dirname {} \;)
+          echo "Found workspaces:"
+          echo "$apps"
+          echo "apps=$apps" >> $GITHUB_OUTPUT
+
+      - name: Filter for buildable apps
+        id: filter
+        run: |
+          buildable_apps=""
+          for app in $(find apps -type f -name package.json -exec dirname {} \;); do
+            if grep -q '"build"' "$app/package.json"; then
+              buildable_apps="$buildable_apps,$app"
+            fi
+          done
+          buildable_apps=$(echo "$buildable_apps" | sed 's/^,//')
+          echo "Filtered buildable apps: $buildable_apps"
+          echo "apps=$buildable_apps" >> $GITHUB_OUTPUT
+
+  build:
+    name: Lint + Type Check + Build
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(format('["{0}"]', join(needs.discover.outputs.apps, '","'))) }}
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: package-lock.json
+          node-version: '20'
+          cache: 'npm'
 
-      # --------------------------------------------------------
-      # 3. Install dependencies with retries (handles ECONNRESET)
-      # --------------------------------------------------------
-      - name: Install dependencies (with retries)
-        run: |
-          echo "🚀 Installing dependencies..."
-          for i in 1 2 3; do
-            npm ci && break || echo "⚠️ npm ci failed on attempt $i, retrying in 5s..."
-            sleep 5
-          done
-          if [ $? -ne 0 ]; then
-            echo "⚠️ npm ci failed after 3 attempts — falling back to npm install"
-            npm install
-          fi
+      - name: Install dependencies
+        run: npm ci --workspace $(basename "${{ matrix.app }}")
 
-      # --------------------------------------------------------
-      # 4. Validate PostCSS config (support .cjs or .js)
-      # --------------------------------------------------------
-      - name: Validate PostCSS config
-        run: |
-          if [ -f "apps/dashboard-charts/apps/web/postcss.config.cjs" ]; then
-            POSTCSS_FILE="apps/dashboard-charts/apps/web/postcss.config.cjs"
-          elif [ -f "apps/dashboard-charts/apps/web/postcss.config.js" ]; then
-            POSTCSS_FILE="apps/dashboard-charts/apps/web/postcss.config.js"
-          else
-            echo "❌ No PostCSS config file found"
-            exit 1
-          fi
+      - name: Prettier check
+        run: npx prettier --check "**/*.{js,ts,jsx,tsx,css,md}"
 
-          if grep -q "@tailwindcss/postcss" "$POSTCSS_FILE"; then
-            echo "✅ PostCSS config ($POSTCSS_FILE) is correct"
-          else
-            echo "❌ PostCSS config missing @tailwindcss/postcss"
-            exit 1
-          fi
+      - name: ESLint check
+        run: npm run lint --workspace $(basename "${{ matrix.app }}") --if-present -- --max-warnings=0
 
-      # --------------------------------------------------------
-      # 5. Clean previous build artifacts
-      # --------------------------------------------------------
-      - name: Clean old builds
-        run: rm -rf apps/dashboard-charts/apps/web/.next
+      - name: TypeScript check
+        run: npm run type-check --workspace $(basename "${{ matrix.app }}") --if-present
 
-      # --------------------------------------------------------
-      # 6. Build, Lint, and Type-Check
-      # --------------------------------------------------------
-      - name: Build / Lint / Type-Check
-        run: npm run ci:web
+      - name: Build app
+        run: npm run build --workspace $(basename "${{ matrix.app }}") --if-present
 
-      # --------------------------------------------------------
-      # 7. CI Summary
-      # --------------------------------------------------------
-      - name: CI Summary
-        if: always()
-        run: |
-          echo "### ✅ CI Summary (Auto)" >> $GITHUB_STEP_SUMMARY
-          echo "Build completed at $(date)" >> $GITHUB_STEP_SUMMARY
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-artifacts
+          path: |
+            ${{ matrix.app }}/.next
+            ${{ matrix.app }}/dist
+            ${{ matrix.app }}/build
 

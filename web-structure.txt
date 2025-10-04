@@ -1,0 +1,84 @@
+apps/dashboard-charts/apps/web
+├── db
+│   ├── schema.sql
+│   └── seed.sql
+├── layout.tsx
+├── next-env.d.ts
+├── next.config.cjs
+├── next.config.mjs
+├── node_modules
+│   ├── @humanwhocodes
+│   │   └── config-array
+│   ├── @next
+│   │   └── eslint-plugin-next
+│   ├── @swc
+│   ├── @types
+│   ├── eslint
+│   │   ├── bin
+│   │   ├── conf
+│   │   ├── lib
+│   │   ├── LICENSE
+│   │   ├── messages
+│   │   ├── package.json
+│   │   └── README.md
+│   ├── eslint-config-next
+│   │   ├── core-web-vitals.js
+│   │   ├── index.js
+│   │   ├── node_modules
+│   │   ├── package.json
+│   │   ├── parser.js
+│   │   └── typescript.js
+│   ├── eslint-config-prettier
+│   │   ├── @typescript-eslint.js
+│   │   ├── babel.js
+│   │   ├── bin
+│   │   ├── flowtype.js
+│   │   ├── index.js
+│   │   ├── LICENSE
+│   │   ├── package.json
+│   │   ├── prettier.js
+│   │   ├── react.js
+│   │   ├── README.md
+│   │   ├── standard.js
+│   │   ├── unicorn.js
+│   │   └── vue.js
+│   └── eslint-visitor-keys
+│       ├── dist
+│       ├── lib
+│       ├── LICENSE
+│       ├── package.json
+│       └── README.md
+├── open-next.config.ts
+├── package.json
+├── page.tsx
+├── postcss.config.cjs
+├── public
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── README.md
+├── src
+│   ├── app
+│   │   ├── api
+│   │   ├── components
+│   │   ├── dashboard
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── login
+│   │   ├── manager
+│   │   ├── page.module.css
+│   │   └── page.tsx
+│   ├── middleware.ts
+│   ├── styles
+│   │   └── globals.css
+│   └── types
+│       └── components.d.ts
+├── tailwind.config.js
+├── tailwindcss-macos-x64
+├── tsconfig.json
+└── wrangler.toml
+
+31 directories, 51 files

@@ -29,12 +29,8 @@ export default function Sidebar() {
         background: '#0b0b0b',
       }}
     >
-      <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 12 }}>
-        Lazy Manager
-      </div>
-      <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 16 }}>
-        Jungle Book
-      </div>
+      <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 12 }}>Lazy Manager</div>
+      <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 16 }}>Jungle Book</div>
 
       <nav style={{ display: 'grid', gap: 6 }}>
         {nav.map((item) => {

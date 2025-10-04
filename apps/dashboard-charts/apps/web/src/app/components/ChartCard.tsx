@@ -13,4 +13,3 @@ export default function ChartCard({ title, children }: ChartCardProps) {
     </div>
   );
 }
-
