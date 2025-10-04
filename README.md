@@ -1,5 +1,8 @@
 # JungleBook 🐅 – Autonomous Software Factory
+# JungleBook Monorepo
 
+[![CI Status](https://github.com/lokany88/junglebook/actions/workflows/ci.yml/badge.svg)](https://github.com/lokany88/junglebook/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/lokany88/junglebook/branch/main/graph/badge.svg?token=<YOUR_CODECOV_TOKEN>)](https://codecov.io/gh/lokany88/junglebook)
 [![CI](https://github.com/lokany88/junglebook/actions/workflows/ci-audit.yml/badge.svg)](https://github.com/lokany88/junglebook/actions/workflows/ci-audit.yml)
 [![Dependabot Status](https://img.shields.io/badge/dependabot-enabled-brightgreen?logo=dependabot)](https://github.com/lokany88/junglebook/network/updates)
 [![License](https://img.shields.io/github/license/lokany88/junglebook)](LICENSE)
