@@ -4,10 +4,14 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build --config next.config.cjs"
+    "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "next lint",
     "type-check": "tsc --noEmit",
+    "ci:web": "npm run build:web && npm run lint:web && npm run type-check:web",
+    "build:web": "npm run build --workspace web",
+    "lint:web": "npm run lint --workspace web",
+    "type-check:web": "npm run type-check --workspace web",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare deploy"
@@ -26,12 +30,12 @@
     "tailwind-variants": "^3.1.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@opennextjs/cloudflare": "^1.9.0",
+    "@eslint/eslintrc": "^3.3.1",
+    "@opennextjs/cloudflare": "^1.9.1",
     "@tailwindcss/postcss": "^4.1.14",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/node": "^20.19.19",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
     "autoprefixer": "^10.4.21",
@@ -40,7 +44,7 @@
     "eslint-formatter-github": "^1.1.4",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.14",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=20"
