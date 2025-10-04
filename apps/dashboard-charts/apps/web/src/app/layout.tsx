@@ -1,20 +1,7 @@
+cat > apps/dashboard-charts/apps/web/src/app/layout.tsx <<'TSX'
+import './globals.css';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
-
-export const metadata: Metadata = {
-  title: 'Lazy Manager Dashboard',
-  description: 'Apple-quality project and finance manager',
-};
 
 export default function RootLayout({
   children,
@@ -23,11 +10,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body>
+        <div className="flex h-screen bg-gray-950 text-gray-100">
+          <Sidebar />
+          <div className="flex flex-col flex-1">
+            <Topbar />
+            <main className="p-6 overflow-y-auto">{children}</main>
+          </div>
+        </div>
       </body>
     </html>
   );
 }
+TSX
+
