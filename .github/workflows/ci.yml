@@ -17,36 +17,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Discover all workspaces
-        id: discover
-        run: |
-          echo "Scanning for workspaces..."
-          apps=$(find apps -type f -name package.json -exec dirname {} \;)
-          echo "Found workspaces:"
-          echo "$apps"
-          echo "apps=$apps" >> $GITHUB_OUTPUT
-
-      - name: Filter for buildable apps
+      - name: Discover buildable apps (JSON-safe)
         id: filter
         run: |
-          buildable_apps=""
-          for app in $(find apps -type f -name package.json -exec dirname {} \;); do
-            if grep -q '"build"' "$app/package.json"; then
-              buildable_apps="$buildable_apps,$app"
-            fi
-          done
-          buildable_apps=$(echo "$buildable_apps" | sed 's/^,//')
-          echo "Filtered buildable apps: $buildable_apps"
-          echo "apps=$buildable_apps" >> $GITHUB_OUTPUT
+          echo "🔍 Scanning for buildable apps..."
+          buildable_apps=$(find apps -type f -name package.json \
+            | grep -v "\.open-next" \
+            | grep -v "node_modules" \
+            | grep -v "junglebook" \
+            | sort -u | xargs -n1 dirname)
+
+          echo "Found buildable apps:"
+          echo "$buildable_apps"
+
+          json_array=$(printf '%s\n' "$buildable_apps" | jq -R . | jq -s .)
+          echo "apps=$json_array" >> $GITHUB_OUTPUT
 
   build:
-    name: Lint + Type Check + Build
+    name: Lint • Type Check • Build
     needs: discover
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        app: ${{ fromJson(format('["{0}"]', join(needs.discover.outputs.apps, '","'))) }}
+        app: ${{ fromJson(needs.discover.outputs.apps) }}
 
     defaults:
       run:
@@ -74,7 +68,7 @@ jobs:
       - name: TypeScript check
         run: npm run type-check --workspace $(basename "${{ matrix.app }}") --if-present
 
-      - name: Build app
+      - name: Build project
         run: npm run build --workspace $(basename "${{ matrix.app }}") --if-present
 
       - name: Upload artifacts on failure
