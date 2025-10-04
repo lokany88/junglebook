@@ -1,0 +1,39 @@
+# === JungleBook Monorepo Prettier Ignore ===
+
+# Node / build
+node_modules
+dist
+build
+.next
+.cache
+coverage
+
+# Cloudflare + OpenNext
+.open-next
+wrangler.toml
+functions/
+workers/
+workerd/
+output/
+
+# Monorepo + Tooling
+apps/**/out
+apps/**/.turbo
+apps/**/.vercel
+apps/**/build
+apps/**/.open-next
+apps/**/dist
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local configs
+.git
+.gitmodules
+.env
+.env.local
+.env.development
+.env.production
