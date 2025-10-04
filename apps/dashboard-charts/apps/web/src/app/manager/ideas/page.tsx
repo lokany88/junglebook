@@ -8,13 +8,20 @@ export default function IdeasPage() {
   async function generate(e: React.FormEvent) {
     e.preventDefault();
     // Placeholder: wire to Architect AI later
-    setResult(`Blueprint (mock): Build "${idea}" using Next.js + Turso + Workers`);
+    setResult(
+      `Blueprint (mock): Build "${idea}" using Next.js + Turso + Workers`,
+    );
   }
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>Idea Forge</h1>
-      <form onSubmit={generate} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>
+        Idea Forge
+      </h1>
+      <form
+        onSubmit={generate}
+        style={{ display: 'flex', gap: 8, marginBottom: 16 }}
+      >
         <input
           value={idea}
           onChange={(e) => setIdea(e.target.value)}

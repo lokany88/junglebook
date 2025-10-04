@@ -3,7 +3,9 @@
 export default function OverviewPage() {
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>Overview</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>
+        Overview
+      </h1>
       <p style={{ color: '#9ca3af', marginBottom: 16 }}>
         High-level status of your apps, deployments, finances, and AI activity.
       </p>

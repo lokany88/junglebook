@@ -1,5 +1,10 @@
 import Link from 'next/link';
-import { HomeIcon, BriefcaseIcon, DollarSignIcon, SettingsIcon } from 'lucide-react';
+import {
+  HomeIcon,
+  BriefcaseIcon,
+  DollarSignIcon,
+  SettingsIcon,
+} from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: HomeIcon },

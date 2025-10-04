@@ -1,7 +1,11 @@
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex h-screen bg-gray-950 text-gray-100">
       <Sidebar />

@@ -12,7 +12,14 @@ import {
   Legend,
 } from 'chart.js';
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
+ChartJS.register(
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Tooltip,
+  Legend,
+);
 
 type Metric = { id: number; label: string; value: number; created_at: string };
 
@@ -73,7 +80,9 @@ export default function MetricsPage() {
     const reversed = [...metrics].reverse();
     return {
       labels: reversed.map((m) => new Date(m.created_at).toLocaleTimeString()),
-      datasets: [{ label: 'Metric Values', data: reversed.map((m) => m.value) }],
+      datasets: [
+        { label: 'Metric Values', data: reversed.map((m) => m.value) },
+      ],
     };
   }, [metrics]);
 
@@ -87,9 +96,14 @@ export default function MetricsPage() {
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>Metrics & Health</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>
+        Metrics & Health
+      </h1>
 
-      <form onSubmit={addMetric} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <form
+        onSubmit={addMetric}
+        style={{ display: 'flex', gap: 8, marginBottom: 16 }}
+      >
         <input
           placeholder="label"
           value={label}
