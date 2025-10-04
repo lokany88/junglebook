@@ -1,54 +1,15 @@
-name: JungleBook Monorepo CI
+name: 🧩 Lint • Type Check • Build
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, ci-upgrade]
   pull_request:
-    branches: [main, master]
+    branches: [main]
 
 jobs:
-  discover:
-    name: Discover Buildable Workspaces
+  pipeline:
     runs-on: ubuntu-latest
-    outputs:
-      apps: ${{ steps.set.outputs.apps }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Discover buildable apps
-        id: set
-        run: |
-          echo "🔍 Scanning for buildable apps..."
-          apps=$(find apps -type f -name package.json \
-            | grep -v "\.open-next" \
-            | grep -v "node_modules" \
-            | grep -v "junglebook" \
-            | sort -u | xargs -n1 dirname)
-
-          echo "Found:"
-          echo "$apps"
-
-          # Convert list to a JSON array safely (e.g. ["apps/foo","apps/bar"])
-          json=$(printf '%s\n' "$apps" | jq -R . | jq -cs .)
-          echo "JSON: $json"
-
-          # Safe write (avoids Invalid format)
-          printf "apps=%s" "$json" >> "$GITHUB_OUTPUT"
-
-  build:
-    name: Lint • Type Check • Build
-    needs: discover
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        app: ${{ fromJson(needs.discover.outputs.apps) }}
-
-    defaults:
-      run:
-        working-directory: ${{ matrix.app }}
-
+    name: Turbo CI Pipeline
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,21 +17,24 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci --workspace $(basename "${{ matrix.app }}")
+      - name: Install dependencies (workspace-aware)
+        run: npm ci
+
+      - name: Run Turbo pipeline (lint → typecheck → build)
+        run: npx turbo run ci --filter=...
 
       - name: Prettier check
         run: npx prettier --check "**/*.{js,ts,jsx,tsx,css,md}"
 
-      - name: ESLint check
-        run: npm run lint --workspace $(basename "${{ matrix.app }}") --if-present -- --max-warnings=0
-
-      - name: TypeScript check
-        run: npm run type-check --workspace $(basename "${{ matrix.app }}") --if-present
-
-      - name: Build project
-        run: npm run build --workspace $(basename "${{ matrix.app }}") --if-present
-
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            apps/**/.next
+            apps/**/dist
+            apps/**/build
