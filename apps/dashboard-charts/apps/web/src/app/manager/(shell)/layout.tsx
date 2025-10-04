@@ -1,5 +1,5 @@
-import Sidebar from './layoutParts/Sidebar';
-import Topbar from './layoutParts/Topbar';
+import Sidebar from '@components/Sidebar';
+import Topbar from '@components/Topbar';
 
 export default function ManagerShellLayout({
   children,

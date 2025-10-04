@@ -1,7 +1,6 @@
-cat > apps/dashboard-charts/apps/web/src/app/layout.tsx <<'TSX'
 import './globals.css';
-import Sidebar from './components/Sidebar';
-import Topbar from './components/Topbar';
+import Sidebar from '@components/Sidebar';
+import Topbar from '@components/Topbar';
 
 export default function RootLayout({
   children,
@@ -22,5 +21,4 @@ export default function RootLayout({
     </html>
   );
 }
-TSX
 
