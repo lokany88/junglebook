@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --config next.config.cjs"
     "start": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
