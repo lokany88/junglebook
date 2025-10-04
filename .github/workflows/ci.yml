@@ -35,7 +35,7 @@ jobs:
       # 5. Verify PostCSS + Tailwind setup before build
       - name: Verify PostCSS config
         run: |
-          if ! grep -q "@tailwindcss/postcss" apps/dashboard-charts/apps/web/postcss.config.js; then
+          if ! grep -q "@tailwindcss/postcss" apps/dashboard-charts/apps/web/postcss.config.cjs; then
             echo "❌ PostCSS config missing @tailwindcss/postcss"
             exit 1
           fi
