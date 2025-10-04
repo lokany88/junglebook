@@ -11,27 +11,30 @@ jobs:
     name: Discover Buildable Workspaces
     runs-on: ubuntu-latest
     outputs:
-      apps: ${{ steps.filter.outputs.apps }}
-
+      apps: ${{ steps.set.outputs.apps }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Discover buildable apps (JSON-safe)
-        id: filter
+      - name: Discover buildable apps
+        id: set
         run: |
           echo "🔍 Scanning for buildable apps..."
-          buildable_apps=$(find apps -type f -name package.json \
+          apps=$(find apps -type f -name package.json \
             | grep -v "\.open-next" \
             | grep -v "node_modules" \
             | grep -v "junglebook" \
             | sort -u | xargs -n1 dirname)
 
-          echo "Found buildable apps:"
-          echo "$buildable_apps"
+          echo "Found:"
+          echo "$apps"
 
-          json_array=$(printf '%s\n' "$buildable_apps" | jq -R . | jq -s .)
-          echo "apps=$json_array" >> $GITHUB_OUTPUT
+          # Convert list to a JSON array safely (e.g. ["apps/foo","apps/bar"])
+          json=$(printf '%s\n' "$apps" | jq -R . | jq -cs .)
+          echo "JSON: $json"
+
+          # Safe write (avoids Invalid format)
+          printf "apps=%s" "$json" >> "$GITHUB_OUTPUT"
 
   build:
     name: Lint • Type Check • Build
@@ -70,14 +73,4 @@ jobs:
 
       - name: Build project
         run: npm run build --workspace $(basename "${{ matrix.app }}") --if-present
-
-      - name: Upload artifacts on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.app }}-artifacts
-          path: |
-            ${{ matrix.app }}/.next
-            ${{ matrix.app }}/dist
-            ${{ matrix.app }}/build
 
