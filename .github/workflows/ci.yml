@@ -1,68 +1,50 @@
-name: ⚡ JungleBook Monorepo CI
+name: JungleBook CI
 
 on:
   push:
     branches: [main, ci-upgrade]
   pull_request:
-    branches: [main]
+    branches: [main, ci-upgrade]
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 jobs:
-  pipeline:
-    runs-on: ubuntu-latest
+  lint-type-test-build:
     name: Lint • Type Check • Test • Build
-    timeout-minutes: 20
+    runs-on: ubuntu-latest
 
     steps:
-      - name: 🧩 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          cache: 'npm'
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: 🧠 Restore Turbo Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            .turbo
-            node_modules/.cache
-            apps/**/.next/cache
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-
-      - name: 🧹 Run Turbo CI (lint, build, test)
-        run: npx turbo run ci --filter=...
-
-      - name: 🧪 Run Vitest with coverage
-        run: npx vitest run --coverage --reporter=verbose --passWithNoTests
-
-      - name: ☁️ Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/lcov.info
-          flags: unittests
-          name: junglebook-ci
-          fail_ci_if_error: true
-
-      - name: ✨ Prettier check
+      - name: Prettier check
         run: npx prettier --check "**/*.{js,ts,jsx,tsx,css,md}"
 
-      - name: 💅 Auto-format (push only)
-        if: github.event_name == 'push'
-        run: |
-          npx prettier --write "**/*.{js,ts,jsx,tsx,css,md}"
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add -A
-          git commit -m "🧹 Auto-format code via CI" || echo "No changes to commit"
+      - name: ESLint check
+        run: npx turbo run lint
+
+      - name: Type check
+        run: npx turbo run typecheck
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build all apps
+        run: npx turbo run build --filter=...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
