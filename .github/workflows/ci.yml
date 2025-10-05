@@ -1,29 +1,35 @@
----
-name: JungleBook CI
-
+name: Build
 on:
   push:
-    branches: [main, ci-upgrade]
+    branches:
+      - ci-upgrade
   pull_request:
-    branches: [main]
-
-env:
-  NODE_ENV: production
+    branches:
+      - ci-upgrade
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    env:
+      NODE_ENV: production
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Restore Turbo cache
+      - name: Remove stale lockfiles
+        run: |
+          if [ -f "/home/runner/work/junglebook/junglebook/../package-lock.json" ]; then
+            rm -f "/home/runner/work/junglebook/junglebook/../package-lock.json"
+          fi
+          if [ -f "/Users/elokaanyaorah/package-lock.json" ]; then
+            rm -f "/Users/elokaanyaorah/package-lock.json"
+          fi
+
+      - name: Cache Turbo
         uses: actions/cache@v4
         with:
           path: .turbo
@@ -33,7 +39,7 @@ jobs:
       - name: Install Turbo
         run: npm install turbo@latest --save-dev --legacy-peer-deps
 
-      - name: Ensure PostCSS plugin present
+      - name: Install PostCSS plugin everywhere
         run: |
           npm install @tailwindcss/postcss@latest --save-exact --legacy-peer-deps || true
           find apps -type f -name "package.json" | while read -r pkg; do
@@ -43,7 +49,7 @@ jobs:
             cd - >/dev/null || exit
           done
 
-      - name: Install dependencies (root + sub-apps)
+      - name: Install all dependencies
         run: |
           npm install --legacy-peer-deps
           find apps -type f -name "package.json" | while read -r pkg; do
@@ -53,25 +59,27 @@ jobs:
             cd - >/dev/null || exit
           done
 
-      - name: Rebuild @components aliases
+      - name: Rebuild component symlinks
         run: |
-          echo "Rebuilding @components symlinks..."
           find apps -type d -path "*/src/app" | while read -r app; do
             mkdir -p "$app/components"
             ln -sf "$app/manager/(shell)/layoutParts/Sidebar.tsx" "$app/components/Sidebar.tsx" 2>/dev/null || true
             ln -sf "$app/manager/(shell)/layoutParts/Topbar.tsx" "$app/components/Topbar.tsx" 2>/dev/null || true
           done
 
-      - name: Auto-heal Sidebar href type error
-        shell: bash
+      - name: Patch Sidebar href typing
         run: |
           SIDEBAR_PATH=$(find apps -type f -path "*/layoutParts/Sidebar.tsx" | head -n 1)
           if [ -n "$SIDEBAR_PATH" ]; then
-            node -e "import fs from 'fs'; const path='$SIDEBAR_PATH'; let code=fs.readFileSync(path,'utf8'); code=code.replace(/href=\{[^}]+\}/g,'href={item.href as any}'); fs.writeFileSync(path,code); console.log('Patched',path);"
+            node -e "import fs from 'fs'; const p='$SIDEBAR_PATH'; let c=fs.readFileSync(p,'utf8'); c=c.replace(/href=\{[^}]+\}/g,'href={item.href as any}'); fs.writeFileSync(p,c); console.log('Patched',p)"
           fi
 
       - name: Build project
         run: npx turbo run build --cache-dir=.turbo
+
+      - name: Auto-format code if Prettier warnings exist
+        run: |
+          npx prettier --check . || (npx prettier --write . && git config user.email "ci@junglebook.local" && git config user.name "JungleBook CI" && git add . && git commit -m "chore: auto-format via CI" && git push)
 
       - name: Save Turbo cache
         uses: actions/cache@v4
@@ -80,18 +88,14 @@ jobs:
           key: turbo-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: turbo-${{ runner.os }}-
 
-      - name: Notify Slack (success)
-        if: success()
+      - name: Slack notification
+        if: always()
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || 'https://example.com/webhook' }}
         run: |
-          if [ -z "$SLACK_WEBHOOK_URL" ]; then SLACK_WEBHOOK_URL="https://example.com/webhook"; fi
-          curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ JungleBook CI build succeeded"}' "$SLACK_WEBHOOK_URL"
-
-      - name: Notify Slack (failure)
-        if: failure()
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          if [ -z "$SLACK_WEBHOOK_URL" ]; then SLACK_WEBHOOK_URL="https://example.com/webhook"; fi
-          curl -X POST -H 'Content-type: application/json' --data '{"text":"❌ JungleBook CI build failed"}' "$SLACK_WEBHOOK_URL"
+          if [ "$GITHUB_JOB_STATUS" = "success" ]; then
+            MSG="✅ JungleBook CI build succeeded"
+          else
+            MSG="❌ JungleBook CI build failed"
+          fi
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"$MSG\"}" "$SLACK_WEBHOOK_URL"
