@@ -1,39 +1,53 @@
-# === JungleBook Monorepo Prettier Ignore ===
-
-# Node / build
+# === NODE MODULES & BUILD OUTPUT ===
 node_modules
 dist
 build
 .next
-.cache
+out
 coverage
+.cache
+.turbo
+turbo
+reports
+artifacts
 
-# Cloudflare + OpenNext
-.open-next
-wrangler.toml
-functions/
-workers/
-workerd/
-output/
-
-# Monorepo + Tooling
-apps/**/out
-apps/**/.turbo
-apps/**/.vercel
-apps/**/build
-apps/**/.open-next
-apps/**/dist
-
-# Logs
+# === CONFIG FILES ===
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# Local configs
-.git
-.gitmodules
+# === ENV FILES ===
 .env
-.env.local
-.env.development
-.env.production
+.env.*
+!.env.example
+
+# === GIT / EDITOR ===
+.git
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# === APP & PACKAGE OUTPUT ===
+apps/**/node_modules
+apps/**/dist
+apps/**/.next
+apps/**/.turbo
+apps/**/coverage
+packages/*/node_modules
+packages/*/dist
+packages/*/.turbo
+apps/dashboard-charts/apps/**/node_modules
+apps/dashboard-charts/apps/**/.next
+apps/dashboard-charts/apps/**/dist
+
+# === TEMP / MISC ===
+tmp
+temp
+*.tmp
+*.pid
+*.seed
+*.pid.lock
+__pycache__
+

@@ -1,0 +1,58 @@
+# === IGNORE BUILD & DEPENDENCY FOLDERS ===
+node_modules
+dist
+build
+.next
+out
+coverage
+.cache
+.turbo
+turbo
+reports
+artifacts
+
+# === ENVIRONMENT FILES ===
+.env
+.env.*
+!.env.example
+
+# === CI + LOGS ===
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# === GIT + EDITOR ===
+.git
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# === MONOREPO SUBFOLDERS ===
+packages/*/dist
+packages/*/.turbo
+packages/*/node_modules
+packages/*/.next
+
+apps/**/node_modules
+apps/**/dist
+apps/**/.next
+apps/**/.turbo
+apps/**/coverage
+apps/**/reports
+apps/**/artifacts
+
+apps/dashboard-charts/apps/**/node_modules
+apps/dashboard-charts/apps/**/.next
+apps/dashboard-charts/apps/**/dist
+apps/dashboard-charts/apps/**/.turbo
+
+# === TEMP FILES ===
+tmp
+temp
+__pycache__
+*.pid
+*.seed
+*.pid.lock
+
