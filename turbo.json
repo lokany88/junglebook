@@ -1,63 +1,23 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": [
-    "NODE_ENV",
-    "NEXT_PUBLIC_*",
-    "VERCEL_ENV",
-    "VERCEL_PROJECT_ID",
-    "VERCEL_ORG_ID",
-    "CLOUDFLARE_ACCOUNT_ID",
-    "CLOUDFLARE_API_TOKEN"
-  ],
-  "tasks": {
+  "globalEnv": ["NODE_ENV"],
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "build/**", "!.next/cache/**"]
+    },
     "lint": {
       "outputs": []
     },
-    "typecheck": {
-      "dependsOn": ["^build"],
-      "outputs": []
-    },
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": [
-        "dist/**",
-        ".next/**",
-        "build/**",
-        "out/**"
-      ],
-      "cache": true
-    },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"],
-      "cache": true
+      "outputs": []
     },
     "dev": {
-      "persistent": true,
-      "cache": false,
-      "dependsOn": ["^build"]
+      "cache": false
     },
-    "ci": {
-      "dependsOn": ["lint", "typecheck", "build", "test"],
+    "typecheck": {
       "outputs": []
     }
-  },
-  "pipelineDefaults": {
-    "cache": true,
-    "dependsOn": [],
-    "inputs": [
-      "**/*",
-      "!node_modules/**",
-      "!dist/**",
-      "!build/**",
-      "!.next/**"
-    ],
-    "outputs": ["dist/**", "build/**", ".next/**"]
-  },
-  "workspaceGlob": [
-    "apps/*",
-    "apps/**/apps/*",
-    "packages/*"
-  ]
+  }
 }
-
