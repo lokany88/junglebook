@@ -15,25 +15,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ────────────────────────────────────────────────
-      # 1️⃣ Checkout Repository
-      # ────────────────────────────────────────────────
-      - name: 🧩 Checkout
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # ────────────────────────────────────────────────
-      # 2️⃣ Setup Node.js
-      # ────────────────────────────────────────────────
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
+          cache: npm
 
-      # ────────────────────────────────────────────────
-      # 3️⃣ Ensure PostCSS Plugin Present
-      # ────────────────────────────────────────────────
-      - name: 🩹 Ensure PostCSS plugin present
+      - name: 🔇 Disable Husky prepare script (if present)
+        run: |
+          if grep -q '"prepare":' package.json; then
+            echo "Removing prepare script (Husky)..."
+            cp package.json package.json.bak
+            jq 'del(.scripts.prepare)' package.json.bak > package.json
+          fi
+
+      - name: Ensure PostCSS plugin present
         run: |
           echo "🔍 Ensuring @tailwindcss/postcss installed..."
           npm install @tailwindcss/postcss@latest --save-exact || true
@@ -46,14 +45,10 @@ jobs:
           done
           echo "✅ PostCSS plugin verified."
 
-      # ────────────────────────────────────────────────
-      # 4️⃣ Install Dependencies
-      # ────────────────────────────────────────────────
       - name: 📦 Install dependencies
         run: |
-          echo "📦 Installing root dependencies..."
+          echo "📦 Installing all dependencies..."
           npm install --legacy-peer-deps
-          echo "📦 Installing subworkspace dependencies..."
           find apps -type f -name "package.json" | while read pkg; do
             dir=$(dirname "$pkg")
             echo "📦 Syncing $dir"
@@ -63,22 +58,16 @@ jobs:
           done
           echo "✅ All dependencies installed."
 
-      # ────────────────────────────────────────────────
-      # 5️⃣ Build via Turbo
-      # ────────────────────────────────────────────────
-      - name: 🏗️ Building project
+      - name: 🏗️ Build project
         run: |
           echo "🏗️ Building project..."
           npx turbo run build
 
-      # ────────────────────────────────────────────────
-      # 6️⃣ Slack Notifications
-      # ────────────────────────────────────────────────
       - name: 📢 Notify Slack (success)
         if: success()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data '{"text":"✅ JungleBook CI build succeeded!"}' \
+          --data '{"text":"✅ JungleBook CI build succeeded}' \
           $SLACK_WEBHOOK_URL
 
       - name: 📢 Notify Slack (failure)

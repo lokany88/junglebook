@@ -13,7 +13,6 @@
     "test": "vitest run",
     "test:ui": "vitest --ui --open",
     "test:watch": "vitest watch",
-    "prepare": "husky",
     "format": "prettier --write ."
   },
   "devDependencies": {
