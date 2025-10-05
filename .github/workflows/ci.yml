@@ -74,6 +74,8 @@ jobs:
             node -e "import fs from 'fs'; const p='$SIDEBAR_PATH'; let c=fs.readFileSync(p,'utf8'); c=c.replace(/href=\{[^}]+\}/g,'href={item.href as any}'); fs.writeFileSync(p,c); console.log('Patched',p)"
           fi
 
+  - name: CI Auto-Heal Guard
+    run: bash .github/workflows/ci-heal-guard.sh
       - name: Build project
         run: npx turbo run build --cache-dir=.turbo
 
