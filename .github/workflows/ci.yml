@@ -67,14 +67,7 @@ jobs:
         run: |
           SIDEBAR_PATH=$(find apps -type f -path "*/layoutParts/Sidebar.tsx" | head -n 1)
           if [ -n "$SIDEBAR_PATH" ]; then
-            node -e "
-              import fs from 'fs';
-              const path = '$SIDEBAR_PATH';
-              let code = fs.readFileSync(path, 'utf8');
-              code = code.replace(/href=\{[^}]+\}/g, 'href={item.href as any}');
-              fs.writeFileSync(path, code);
-              console.log('Patched', path);
-            "
+            node -e "import fs from 'fs'; const path='$SIDEBAR_PATH'; let code=fs.readFileSync(path,'utf8'); code=code.replace(/href=\{[^}]+\}/g,'href={item.href as any}'); fs.writeFileSync(path,code); console.log('Patched',path);"
           fi
 
       - name: Build project
@@ -92,21 +85,13 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          if [ -z "$SLACK_WEBHOOK_URL" ]; then
-            SLACK_WEBHOOK_URL="https://example.com/webhook"
-          fi
-          curl -X POST -H 'Content-type: application/json' \
-            --data '{"text":"✅ JungleBook CI build succeeded"}' \
-            "$SLACK_WEBHOOK_URL"
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then SLACK_WEBHOOK_URL="https://example.com/webhook"; fi
+          curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ JungleBook CI build succeeded"}' "$SLACK_WEBHOOK_URL"
 
       - name: Notify Slack (failure)
         if: failure()
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          if [ -z "$SLACK_WEBHOOK_URL" ]; then
-            SLACK_WEBHOOK_URL="https://example.com/webhook"
-          fi
-          curl -X POST -H 'Content-type: application/json' \
-            --data '{"text":"❌ JungleBook CI build failed"}' \
-            "$SLACK_WEBHOOK_URL"
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then SLACK_WEBHOOK_URL="https://example.com/webhook"; fi
+          curl -X POST -H 'Content-type: application/json' --data '{"text":"❌ JungleBook CI build failed"}' "$SLACK_WEBHOOK_URL"
