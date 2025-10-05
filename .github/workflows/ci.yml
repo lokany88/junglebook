@@ -1,19 +1,26 @@
-name: CI
+name: JungleBook CI
+
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - ci-upgrade
   pull_request:
-    branches: [main]
+    branches:
+      - main
+
+env:
+  NODE_ENV: production
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      NODE_ENV: production
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
     steps:
-      - name: 🛒 Checkout
+      # ────────────────────────────────────────────────
+      # 1️⃣ Checkout Repo
+      # ────────────────────────────────────────────────
+      - name: 🧭 Checkout repository
         uses: actions/checkout@v4
 
       - name: ⚙️ Setup Node.js
@@ -22,7 +29,10 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: 🧹 Clean & patch repo
+      # ────────────────────────────────────────────────
+      # 2️⃣ Clean Workspace
+      # ────────────────────────────────────────────────
+      - name: 🧹 Cleaning workspace
         run: |
           echo "🧹 Cleaning workspace..."
           rm -f package-lock.json
@@ -31,19 +41,36 @@ jobs:
           sudo apt-get install -y jq
           npm install -g turbo
 
-          # 🔇 Disable prepare script (Husky)
-          echo "Temporarily disabling prepare script..."
+          echo "🔇 Temporarily disabling prepare script..."
           if grep -q '"prepare":' package.json; then
             cp package.json package.json.bak
             jq 'del(.scripts.prepare)' package.json.bak > package.json
           fi
 
-          # 🩹 Patch turbo.json for Turbo 2.x
+          echo "🩹 Patching turbo.json (pipeline → tasks)..."
           if [ -f turbo.json ]; then
-            echo "🩹 Patching turbo.json (pipeline → tasks)..."
             jq 'if has("pipeline") then .tasks = .pipeline | del(.pipeline) else . end' turbo.json > turbo.tmp && mv turbo.tmp turbo.json
           fi
 
+      # ────────────────────────────────────────────────
+      # 3️⃣ Ensure PostCSS Plugin Present
+      # ────────────────────────────────────────────────
+      - name: 🩹 Ensure PostCSS plugin present
+        run: |
+          echo "🔍 Ensuring @tailwindcss/postcss is installed..."
+          npm install @tailwindcss/postcss@latest --save-exact || true
+          for d in $(find apps -type f -name package.json | grep web); do
+            dir=$(dirname "$d")
+            echo "📦 Ensuring $dir"
+            cd "$dir"
+            npm install @tailwindcss/postcss@latest --save-exact || true
+            cd - >/dev/null
+          done
+          echo "✅ PostCSS plugin present in all workspaces."
+
+      # ────────────────────────────────────────────────
+      # 4️⃣ Install Dependencies
+      # ────────────────────────────────────────────────
       - name: 📦 Install dependencies
         run: |
           echo "📦 Installing root dependencies..."
@@ -54,23 +81,29 @@ jobs:
             echo "📦 Syncing $dir"
             cd "$dir"
             npm install --legacy-peer-deps || true
-            cd - > /dev/null
+            cd - >/dev/null
           done
           echo "✅ All dependencies installed."
 
-      - name: 🏗️ Build with Turbo
+      # ────────────────────────────────────────────────
+      # 5️⃣ Build All Packages
+      # ────────────────────────────────────────────────
+      - name: 🏗️ Building project
         run: |
           echo "🏗️ Building project..."
           npx turbo run build
 
-      - name: ✅ Notify success
+      # ────────────────────────────────────────────────
+      # 6️⃣ Slack Notifications
+      # ────────────────────────────────────────────────
+      - name: 📢 Notify Slack (success)
         if: success()
         run: |
           curl -X POST -H 'Content-type: application/json' \
           --data '{"text":"✅ JungleBook CI build succeeded!"}' \
           $SLACK_WEBHOOK_URL
 
-      - name: ❌ Notify failure
+      - name: 📢 Notify Slack (failure)
         if: failure()
         run: |
           curl -X POST -H 'Content-type: application/json' \
