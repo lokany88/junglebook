@@ -4,9 +4,9 @@
     "module": "esnext",
     "jsx": "preserve",
     "moduleResolution": "bundler",
-    "baseUrl": "src/app",
+    "baseUrl": "./src",
     "paths": {
-      "@components/*": ["components/*"]
+      "@components/*": ["app/components/*"]
     },
     "strict": true,
     "esModuleInterop": true,
