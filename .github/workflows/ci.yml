@@ -13,61 +13,36 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          cache: "npm"
 
-      - name: 🔇 Disable Husky prepare script (if present)
+      - name: 🧩 Preinstall critical deps
         run: |
-          if grep -q '"prepare":' package.json; then
-            echo "Removing prepare script (Husky)..."
-            cp package.json package.json.bak
-            jq 'del(.scripts.prepare)' package.json.bak > package.json
-          fi
-
-      - name: Ensure PostCSS plugin present
-        run: |
-          echo "🔍 Ensuring @tailwindcss/postcss installed..."
-          npm install @tailwindcss/postcss@latest --save-exact || true
-          for d in $(find apps -type f -name package.json | grep web); do
-            dir=$(dirname "$d")
-            echo "📦 Ensuring $dir"
-            cd "$dir"
-            npm install @tailwindcss/postcss@latest --save-exact || true
-            cd - >/dev/null
-          done
-          echo "✅ PostCSS plugin verified."
+          npm install -g turbo@2.5.8
+          npm install --save-dev @tailwindcss/postcss@latest
 
       - name: 📦 Install dependencies
         run: |
-          echo "📦 Installing all dependencies..."
           npm install --legacy-peer-deps
           find apps -type f -name "package.json" | while read pkg; do
             dir=$(dirname "$pkg")
-            echo "📦 Syncing $dir"
             cd "$dir"
             npm install --legacy-peer-deps || true
             cd - >/dev/null
           done
-          echo "✅ All dependencies installed."
 
-      - name: 🏗️ Build project
-        run: |
-          echo "🏗️ Building project..."
-          npx turbo run build
+      - name: 🏗️ Building project
+        run: npx turbo run build
 
       - name: 📢 Notify Slack (success)
         if: success()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data '{"text":"✅ JungleBook CI build succeeded}' \
+          --data '{"text":"✅ JungleBook CI build succeeded!"}' \
           $SLACK_WEBHOOK_URL
 
       - name: 📢 Notify Slack (failure)
