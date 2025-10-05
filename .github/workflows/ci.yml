@@ -22,21 +22,28 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: 🧹 Clean & prepare
+      - name: 🧹 Clean & patch repo
         run: |
           echo "🧹 Cleaning workspace..."
           rm -f package-lock.json
           rm -rf node_modules
+          npm install -g jq
           npm install -g turbo
 
-          # 🔇 disable prepare script so husky isn't executed
+          # 🔇 Disable prepare script (Husky)
           echo "Temporarily disabling prepare script..."
           if grep -q '"prepare":' package.json; then
             cp package.json package.json.bak
             jq 'del(.scripts.prepare)' package.json.bak > package.json
           fi
 
-      - name: 📦 Install all dependencies
+          # 🩹 Fix turbo.json key name for v2+
+          if [ -f turbo.json ]; then
+            echo "🩹 Patching turbo.json (pipeline → tasks)..."
+            jq 'if has("pipeline") then .tasks = .pipeline | del(.pipeline) else . end' turbo.json > turbo.tmp && mv turbo.tmp turbo.json
+          fi
+
+      - name: 📦 Install dependencies
         run: |
           echo "📦 Installing root dependencies..."
           npm install --legacy-peer-deps
@@ -50,7 +57,7 @@ jobs:
           done
           echo "✅ All dependencies installed."
 
-      - name: 🏗️ Build
+      - name: 🏗️ Build with local Turbo
         run: |
           echo "🏗️ Building project..."
           npx turbo run build
