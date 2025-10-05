@@ -11,42 +11,48 @@ jobs:
     env:
       NODE_ENV: production
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      HUSKY: 0
 
     steps:
-      - name: Checkout repository
+      - name: 🛒 Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
+          cache: npm
 
-      - name: 🧹 Clean old installs
+      - name: 🧹 Clean & prepare
         run: |
-          echo "🧹 Removing old lockfiles and node_modules..."
+          echo "🧹 Cleaning workspace..."
           rm -f package-lock.json
           rm -rf node_modules
           npm install -g turbo
 
-      - name: 📦 Install all dependencies (root + subapps)
+          # 🔇 disable prepare script so husky isn't executed
+          echo "Temporarily disabling prepare script..."
+          if grep -q '"prepare":' package.json; then
+            cp package.json package.json.bak
+            jq 'del(.scripts.prepare)' package.json.bak > package.json
+          fi
+
+      - name: 📦 Install all dependencies
         run: |
           echo "📦 Installing root dependencies..."
-          HUSKY=0 npm install --legacy-peer-deps
+          npm install --legacy-peer-deps
           echo "📦 Installing subworkspace dependencies..."
           find apps -type f -name "package.json" | while read pkg; do
             dir=$(dirname "$pkg")
             echo "📦 Syncing $dir"
             cd "$dir"
-            HUSKY=0 npm install --legacy-peer-deps || true
+            npm install --legacy-peer-deps || true
             cd - > /dev/null
           done
           echo "✅ All dependencies installed."
 
-      - name: 🏗️ Build project
+      - name: 🏗️ Build
         run: |
-          echo "🏗️ Running Turbo build..."
+          echo "🏗️ Building project..."
           npx turbo run build
 
       - name: ✅ Notify success
