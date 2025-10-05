@@ -37,3 +37,4 @@ jb preset next-login-charts
 jb audit <slug>
 
 ```
+Update CI test
