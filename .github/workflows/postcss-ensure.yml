@@ -1,0 +1,17 @@
+name: Ensure PostCSS
+on: workflow_call
+
+jobs:
+  ensure-postcss:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "🔍 Ensuring @tailwindcss/postcss installed everywhere..."
+          npm install @tailwindcss/postcss@latest --save-exact || true
+          for d in $(find apps -type f -name package.json | grep web); do
+            dir=$(dirname "$d")
+            cd "$dir"
+            npm install @tailwindcss/postcss@latest --save-exact || true
+            cd - >/dev/null
+          done
