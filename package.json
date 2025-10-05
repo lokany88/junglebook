@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "packageManager": "npm@10.8.2",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "turbo run dev --parallel & npm run test:ui",
     "build": "turbo run build",
@@ -10,7 +13,8 @@
     "test": "vitest run",
     "test:ui": "vitest --ui --open",
     "test:watch": "vitest watch",
-    "prepare": "husky install"
+    "prepare": "husky",
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
@@ -29,9 +33,9 @@
     "prettier": "^3.3.3",
     "turbo": "^2.5.8",
     "typescript": "^5.5.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@lhci/cli": "^0.15.1"
   },
-  "dependencies": {},
   "workspaces": [
     "apps/*",
     "apps/dashboard-charts/apps/*",

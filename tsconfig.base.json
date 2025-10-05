@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowJs": false,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    "isolatedModules": true,
+    "types": ["node", "react", "react-dom"],
+    "incremental": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@shared/*": ["packages/shared/src/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    ".next",
+    "dist",
+    "build",
+    ".turbo",
+    "coverage",
+    ".open-next"
+  ],
+  "include": ["apps/**/*", "packages/**/*", "scripts/**/*"]
+}

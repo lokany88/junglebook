@@ -1,0 +1,32 @@
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+.venv/
+
+# ---- Node / Next.js ----
+node_modules/
+.npm/
+.next/
+.open-next/
+*.log
+
+# ---- JungleBook factory artifacts ----
+apps/*/audit/
+apps/*/lhci/
+*.db
+
+# ---- Cloudflare / Wrangler ----
+.dev.vars
+*.secrets
+*.wrangler/
+
+# ---- System / OS ----
+.DS_Store
+Thumbs.db
+

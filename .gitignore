@@ -52,3 +52,4 @@ apps/**/postcss.config.js
 *.tgz
 *.tar.gz
 
+.vercel
