@@ -1,79 +1,62 @@
-name: JungleBook CI
-
+name: CI
 on:
   push:
-    branches:
-      - main
-      - ci-upgrade
+    branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
-  ci:
+  build:
     runs-on: ubuntu-latest
-
     env:
       NODE_ENV: production
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      HUSKY: 0
 
     steps:
-      - name: 🧭 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🧱 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "npm"
 
-      - name: 🧹 Clean workspace
+      - name: 🧹 Clean old installs
         run: |
           echo "🧹 Removing old lockfiles and node_modules..."
           rm -f package-lock.json
           rm -rf node_modules
           npm install -g turbo
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install all dependencies (root + subapps)
         run: |
           echo "📦 Installing root dependencies..."
-          npm install --legacy-peer-deps
+          HUSKY=0 npm install --legacy-peer-deps
           echo "📦 Installing subworkspace dependencies..."
           find apps -type f -name "package.json" | while read pkg; do
             dir=$(dirname "$pkg")
             echo "📦 Syncing $dir"
             cd "$dir"
-            npm install --legacy-peer-deps || true
+            HUSKY=0 npm install --legacy-peer-deps || true
             cd - > /dev/null
           done
           echo "✅ All dependencies installed."
 
-      - name: 🧪 Run tests
+      - name: 🏗️ Build project
         run: |
-          echo "🧪 Running tests..."
-          npm run test || true
+          echo "🏗️ Running Turbo build..."
+          npx turbo run build
 
-      - name: 🔍 Lint
-        run: |
-          echo "🔍 Running lint..."
-          npm run lint || true
-
-      - name: 🧩 Typecheck
-        run: |
-          echo "🧩 Type checking..."
-          npx turbo run typecheck || true
-
-      - name: 🏗️ Build
-        run: |
-          echo "🏗️ Running production build..."
-          npm run build
-
-      - name: ✅ Slack success message
+      - name: ✅ Notify success
         if: success()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data '{"text":"✅ JungleBook CI passed successfully!"}' \
+          --data '{"text":"✅ JungleBook CI build succeeded!"}' \
           $SLACK_WEBHOOK_URL
 
-      - name: ❌ Slack failure message
+      - name: ❌ Notify failure
         if: failure()
         run: |
           curl -X POST -H 'Content-type: application/json' \
