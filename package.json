@@ -41,5 +41,8 @@
     "apps/*",
     "apps/dashboard-charts/apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@next/swc-linux-x64-gnu": "15.5.4"
+  }
 }
