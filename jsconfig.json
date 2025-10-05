@@ -2,7 +2,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@components/*": ["apps/dashboard-charts/apps/web/src/app/components/*"]
+      "@components/*": [
+        "apps/dashboard-charts/apps/web/src/app/manager/(shell)/layoutParts/*"
+      ]
     }
   }
 }
