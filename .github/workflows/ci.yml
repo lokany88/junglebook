@@ -2,12 +2,9 @@ name: JungleBook CI
 
 on:
   push:
-    branches:
-      - main
-      - ci-upgrade
+    branches: [main, ci-upgrade]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 env:
   NODE_ENV: production
@@ -16,48 +13,29 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       # ────────────────────────────────────────────────
-      # 1️⃣ Checkout Repo
+      # 1️⃣ Checkout Repository
       # ────────────────────────────────────────────────
-      - name: 🧭 Checkout repository
+      - name: 🧩 Checkout
         uses: actions/checkout@v4
 
+      # ────────────────────────────────────────────────
+      # 2️⃣ Setup Node.js
+      # ────────────────────────────────────────────────
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-
-      # ────────────────────────────────────────────────
-      # 2️⃣ Clean Workspace
-      # ────────────────────────────────────────────────
-      - name: 🧹 Cleaning workspace
-        run: |
-          echo "🧹 Cleaning workspace..."
-          rm -f package-lock.json
-          rm -rf node_modules
-          sudo apt-get update -y
-          sudo apt-get install -y jq
-          npm install -g turbo
-
-          echo "🔇 Temporarily disabling prepare script..."
-          if grep -q '"prepare":' package.json; then
-            cp package.json package.json.bak
-            jq 'del(.scripts.prepare)' package.json.bak > package.json
-          fi
-
-          echo "🩹 Patching turbo.json (pipeline → tasks)..."
-          if [ -f turbo.json ]; then
-            jq 'if has("pipeline") then .tasks = .pipeline | del(.pipeline) else . end' turbo.json > turbo.tmp && mv turbo.tmp turbo.json
-          fi
+          cache: "npm"
 
       # ────────────────────────────────────────────────
       # 3️⃣ Ensure PostCSS Plugin Present
       # ────────────────────────────────────────────────
       - name: 🩹 Ensure PostCSS plugin present
         run: |
-          echo "🔍 Ensuring @tailwindcss/postcss is installed..."
+          echo "🔍 Ensuring @tailwindcss/postcss installed..."
           npm install @tailwindcss/postcss@latest --save-exact || true
           for d in $(find apps -type f -name package.json | grep web); do
             dir=$(dirname "$d")
@@ -66,7 +44,7 @@ jobs:
             npm install @tailwindcss/postcss@latest --save-exact || true
             cd - >/dev/null
           done
-          echo "✅ PostCSS plugin present in all workspaces."
+          echo "✅ PostCSS plugin verified."
 
       # ────────────────────────────────────────────────
       # 4️⃣ Install Dependencies
@@ -86,7 +64,7 @@ jobs:
           echo "✅ All dependencies installed."
 
       # ────────────────────────────────────────────────
-      # 5️⃣ Build All Packages
+      # 5️⃣ Build via Turbo
       # ────────────────────────────────────────────────
       - name: 🏗️ Building project
         run: |
