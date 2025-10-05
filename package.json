@@ -41,8 +41,5 @@
     "apps/*",
     "apps/dashboard-charts/apps/*",
     "packages/*"
-  ],
-  "dependencies": {
-    "@next/swc-darwin-x64": "15.5.4"
-  }
+  ]
 }
