@@ -101,8 +101,11 @@ fs.writeFileSync(path, code)
       - name: Notify Slack (success)
         if: success()
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || 'https://example.com/webhook' }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            SLACK_WEBHOOK_URL="https://example.com/webhook"
+          fi
           curl -X POST -H 'Content-type: application/json' \
             --data '{"text":"✅ JungleBook CI build succeeded"}' \
             "$SLACK_WEBHOOK_URL"
@@ -110,8 +113,11 @@ fs.writeFileSync(path, code)
       - name: Notify Slack (failure)
         if: failure()
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || 'https://example.com/webhook' }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            SLACK_WEBHOOK_URL="https://example.com/webhook"
+          fi
           curl -X POST -H 'Content-type: application/json' \
             --data '{"text":"❌ JungleBook CI build failed"}' \
             "$SLACK_WEBHOOK_URL"
