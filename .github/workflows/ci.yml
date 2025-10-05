@@ -27,7 +27,8 @@ jobs:
           echo "🧹 Cleaning workspace..."
           rm -f package-lock.json
           rm -rf node_modules
-          npm install -g jq
+          sudo apt-get update -y
+          sudo apt-get install -y jq
           npm install -g turbo
 
           # 🔇 Disable prepare script (Husky)
@@ -37,7 +38,7 @@ jobs:
             jq 'del(.scripts.prepare)' package.json.bak > package.json
           fi
 
-          # 🩹 Fix turbo.json key name for v2+
+          # 🩹 Patch turbo.json for Turbo 2.x
           if [ -f turbo.json ]; then
             echo "🩹 Patching turbo.json (pipeline → tasks)..."
             jq 'if has("pipeline") then .tasks = .pipeline | del(.pipeline) else . end' turbo.json > turbo.tmp && mv turbo.tmp turbo.json
@@ -57,7 +58,7 @@ jobs:
           done
           echo "✅ All dependencies installed."
 
-      - name: 🏗️ Build with local Turbo
+      - name: 🏗️ Build with Turbo
         run: |
           echo "🏗️ Building project..."
           npx turbo run build
