@@ -1,8 +1,8 @@
 // src/middleware.ts
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export function middleware(req: NextRequest) {
+export function middleware(_req: NextRequest) {
   // Temporary bypass: let everyone in
   return NextResponse.next();
 
@@ -17,4 +17,3 @@ export function middleware(req: NextRequest) {
   return NextResponse.next();
   */
 }
-

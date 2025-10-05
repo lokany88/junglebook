@@ -1,5 +1,5 @@
 export default function QuickActions() {
-  const actions = ["Add Project", "Allocate Funds", "Generate Report"];
+  const actions = ['Add Project', 'Allocate Funds', 'Generate Report'];
 
   return (
     <div className="card">
@@ -17,4 +17,3 @@ export default function QuickActions() {
     </div>
   );
 }
-

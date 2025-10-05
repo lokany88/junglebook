@@ -1,8 +1,8 @@
 export default function TaskQueue() {
   const tasks = [
-    { name: "Set up Turso DB for metrics", due: "Tomorrow" },
-    { name: "Finalize Tailwind config", due: "Today" },
-    { name: "Deploy staging build", due: "Friday" },
+    { name: 'Set up Turso DB for metrics', due: 'Tomorrow' },
+    { name: 'Finalize Tailwind config', due: 'Today' },
+    { name: 'Deploy staging build', due: 'Friday' },
   ];
 
   return (
@@ -22,4 +22,3 @@ export default function TaskQueue() {
     </div>
   );
 }
-

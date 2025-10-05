@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Search, User, Moon, Sun } from "lucide-react";
-import { useState } from "react";
+import { Search, User, Moon, Sun } from 'lucide-react';
+import { useState } from 'react';
 
 export default function Topbar() {
   const [darkMode, setDarkMode] = useState(false);
@@ -41,4 +41,3 @@ export default function Topbar() {
     </header>
   );
 }
-

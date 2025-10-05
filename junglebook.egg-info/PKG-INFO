@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: junglebook
+Version: 0.1.0
+Summary: Ultra-intelligent instant app generator
+Requires-Python: >=3.11
+License-File: LICENSE
+Requires-Dist: typer>=0.12.3
+Requires-Dist: rich>=13.7.1
+Requires-Dist: pyyaml
+Dynamic: license-file

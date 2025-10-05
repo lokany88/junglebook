@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import ChartCard from "./ChartCard";
+import ChartCard from './ChartCard';
 
 const projects = [
-  { name: "ResQNow Platform", progress: 80 },
-  { name: "Lazy Manager Dashboard", progress: 55 },
-  { name: "Tool Deals Daily", progress: 30 },
+  { name: 'ResQNow Platform', progress: 80 },
+  { name: 'Lazy Manager Dashboard', progress: 55 },
+  { name: 'Tool Deals Daily', progress: 30 },
 ];
 
 export default function ActiveProjects() {
@@ -34,4 +34,3 @@ export default function ActiveProjects() {
     </ChartCard>
   );
 }
-

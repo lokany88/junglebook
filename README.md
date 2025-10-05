@@ -1,5 +1,8 @@
 # JungleBook 🐅 – Autonomous Software Factory
-   
+# JungleBook Monorepo
+
+[![CI Status](https://github.com/lokany88/junglebook/actions/workflows/ci.yml/badge.svg)](https://github.com/lokany88/junglebook/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/lokany88/junglebook/branch/main/graph/badge.svg?token=<YOUR_CODECOV_TOKEN>)](https://codecov.io/gh/lokany88/junglebook)
 [![CI](https://github.com/lokany88/junglebook/actions/workflows/ci-audit.yml/badge.svg)](https://github.com/lokany88/junglebook/actions/workflows/ci-audit.yml)
 [![Dependabot Status](https://img.shields.io/badge/dependabot-enabled-brightgreen?logo=dependabot)](https://github.com/lokany88/junglebook/network/updates)
 [![License](https://img.shields.io/github/license/lokany88/junglebook)](LICENSE)
@@ -9,18 +12,20 @@
 ---
 
 ## ⚡ What is JungleBook?
-JungleBook is an **ultra-intelligent instant app generator** that builds, audits, and deploys complex apps, websites, and games in **seconds** from even the vaguest inputs.  
 
-**Tagline:** _From idea → production in seconds. Built for scale, governance, and speed._  
+JungleBook is an **ultra-intelligent instant app generator** that builds, audits, and deploys complex apps, websites, and games in **seconds** from even the vaguest inputs.
 
-- **Cloudflare-first** deployment (Workers + D1/Turso) with AWS fallback.  
-- **AI Architect → Interpreter → Audit** workflow ensures every build is production-ready.  
-- **Governance pack** enforces quality, fairness, compliance, and cost controls.  
-- **Lazy Manager CLI** (`jb`) manages builds, audits, presets, and deployments.  
+**Tagline:** _From idea → production in seconds. Built for scale, governance, and speed._
+
+- **Cloudflare-first** deployment (Workers + D1/Turso) with AWS fallback.
+- **AI Architect → Interpreter → Audit** workflow ensures every build is production-ready.
+- **Governance pack** enforces quality, fairness, compliance, and cost controls.
+- **Lazy Manager CLI** (`jb`) manages builds, audits, presets, and deployments.
 
 ---
 
 ## 🚀 Current Capabilities
+
 ```bash
 # Build an app instantly
 jb build "AI-powered trading dashboard"
@@ -31,3 +36,4 @@ jb preset next-login-charts
 # Run full audit
 jb audit <slug>
 
+```

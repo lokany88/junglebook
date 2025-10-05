@@ -1,11 +1,16 @@
-import Link from "next/link";
-import { HomeIcon, BriefcaseIcon, DollarSignIcon, SettingsIcon } from "lucide-react";
+import Link from 'next/link';
+import {
+  HomeIcon,
+  BriefcaseIcon,
+  DollarSignIcon,
+  SettingsIcon,
+} from 'lucide-react';
 
 const navItems = [
-  { href: "/dashboard", label: "Overview", icon: HomeIcon },
-  { href: "/dashboard/projects", label: "Projects", icon: BriefcaseIcon },
-  { href: "/dashboard/finances", label: "Finances", icon: DollarSignIcon },
-  { href: "/dashboard/settings", label: "Settings", icon: SettingsIcon },
+  { href: '/dashboard', label: 'Overview', icon: HomeIcon },
+  { href: '/dashboard/projects', label: 'Projects', icon: BriefcaseIcon },
+  { href: '/dashboard/finances', label: 'Finances', icon: DollarSignIcon },
+  { href: '/dashboard/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
 export default function Sidebar() {
@@ -30,4 +35,3 @@ export default function Sidebar() {
     </aside>
   );
 }
-
