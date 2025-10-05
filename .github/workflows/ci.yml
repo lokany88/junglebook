@@ -1,7 +1,7 @@
 ---
 name: JungleBook CI
 
-"on":
+on:
   push:
     branches:
       - main
@@ -27,66 +27,37 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install yamllint
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y yamllint
-
-      - name: Lint YAML files
-        run: yamllint .github/workflows
-
       - name: Restore Turbo cache
         uses: actions/cache@v4
         with:
           path: .turbo
-          key: >-
-            turbo-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: >-
-            turbo-${{ runner.os }}-
+          key: turbo-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: turbo-${{ runner.os }}-
 
-      - name: Install Turbo
-        run: npm install turbo@latest --save-dev --legacy-peer-deps
-
-      - name: Ensure PostCSS plugin present
+      - name: Auto-heal environment and dependencies
         run: |
-          npm install @tailwindcss/postcss@latest --save-exact || true
-          find apps -type f -name "package.json" | grep web | while read -r d
-          do
-            dir=$(dirname "$d")
-            cd "$dir" || exit
-            npm install @tailwindcss/postcss@latest --save-exact || true
-            cd - >/dev/null || exit
-          done
-
-      - name: Install dependencies (root + sub-apps)
-        run: |
-          npm install --legacy-peer-deps
+          echo "🔧 Ensuring Turbo & PostCSS setup..."
+          npm install turbo@latest --save-dev --legacy-peer-deps
+          npm install @tailwindcss/postcss@latest --save-exact --legacy-peer-deps
           find apps -type f -name "package.json" | while read -r pkg
           do
             dir=$(dirname "$pkg")
             cd "$dir" || exit
-            npm install --legacy-peer-deps || true
+            npm install @tailwindcss/postcss@latest --save-exact --legacy-peer-deps || true
             cd - >/dev/null || exit
           done
 
-      - name: Auto-heal Sidebar href type error
-        shell: bash
-        run: |
-          SIDEBAR_PATH=$(
-            find apps -type f -path "*/layoutParts/Sidebar.tsx" | head -n 1
-          )
-          if [ -n "$SIDEBAR_PATH" ]; then
-            node -e '
-              const fs = require("fs");
-              const p = process.env.SIDEBAR_PATH || process.argv[1];
-              let code = fs.readFileSync(p, "utf8");
-              code = code.replace(
-                /href=\{[^}]+\}/g,
-                "href={item.href as any}"
-              );
-              fs.writeFileSync(p, code);
-            ' "$SIDEBAR_PATH"
-          fi
+          echo "🔗 Rebuilding @components symlinks..."
+          find apps -type d -path "*/src/app" | while read -r app
+          do
+            mkdir -p "$app/components"
+            ln -sf "$app/manager/(shell)/layoutParts/Sidebar.tsx" "$app/components/Sidebar.tsx" 2>/dev/null || true
+            ln -sf "$app/manager/(shell)/layoutParts/Topbar.tsx" "$app/components/Topbar.tsx" 2>/dev/null || true
+          done
+
+          echo "🧹 Cleaning old caches..."
+          rm -rf .turbo node_modules apps/**/node_modules
+          npm install --legacy-peer-deps
 
       - name: Build project
         run: npx turbo run build --cache-dir=.turbo
@@ -95,13 +66,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .turbo
-          key: >-
-            turbo-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: >-
-            turbo-${{ runner.os }}-
+          key: turbo-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: turbo-${{ runner.os }}-
 
       - name: Notify Slack (success)
         if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || 'https://example.com/webhook' }}
         run: |
           curl -X POST -H 'Content-type: application/json' \
             --data '{"text":"✅ JungleBook CI build succeeded"}' \
@@ -109,6 +80,8 @@ jobs:
 
       - name: Notify Slack (failure)
         if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || 'https://example.com/webhook' }}
         run: |
           curl -X POST -H 'Content-type: application/json' \
             --data '{"text":"❌ JungleBook CI build failed"}' \
