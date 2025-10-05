@@ -67,14 +67,14 @@ jobs:
         run: |
           SIDEBAR_PATH=$(find apps -type f -path "*/layoutParts/Sidebar.tsx" | head -n 1)
           if [ -n "$SIDEBAR_PATH" ]; then
-            node - <<'CODE'
-import fs from 'fs';
-const path = process.env.SIDEBAR_PATH || '$SIDEBAR_PATH';
-let code = fs.readFileSync(path, 'utf8');
-code = code.replace(/href=\{[^}]+\}/g, 'href={item.href as any}');
-fs.writeFileSync(path, code);
-console.log('Patched', path);
-CODE
+            node -e "
+              import fs from 'fs';
+              const path = '$SIDEBAR_PATH';
+              let code = fs.readFileSync(path, 'utf8');
+              code = code.replace(/href=\{[^}]+\}/g, 'href={item.href as any}');
+              fs.writeFileSync(path, code);
+              console.log('Patched', path);
+            "
           fi
 
       - name: Build project
