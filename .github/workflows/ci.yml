@@ -23,18 +23,19 @@ jobs:
       - name: Install dependencies (workspaces)
         run: npm install --workspaces --legacy-peer-deps
 
-      - name: Ensure Next binary (global + local fallback)
+      - name: Verify and Inject Next Binary
         run: |
           set -eux
           WEB_PATH="./apps/dashboard-charts/apps/web"
           mkdir -p "$WEB_PATH/node_modules/.bin"
           npm install -g next@15 react react-dom || true
-          ln -sf "$(command -v next)" "$WEB_PATH/node_modules/.bin/next" || true
           npm --workspace "$WEB_PATH" install next@15 react react-dom --legacy-peer-deps || true
-          ls -la "$WEB_PATH" || true
-          ls -la "$WEB_PATH/node_modules" || true
+
+          echo "Checking binary availability..."
+          which next || echo "Global next not found"
+          ls -l "$(npm root -g)/.bin" || true
           ls -la "$WEB_PATH/node_modules/.bin" || true
-          command -v next || true
+          echo "Done verifying Next binary."
 
       - name: Run CI Heal Guard (optional)
         run: |
@@ -44,7 +45,11 @@ jobs:
             echo "ci-heal-guard.sh not found; continuing"
           fi
 
-      - name: Build with Turbo (with manual Next fallback)
+      - name: Build with Turbo (fallback to direct Next.js)
         run: |
           set -eux
-          npx -y turbo@^2 run build --cache-dir=.turbo || (cd ./apps/dashboard-charts/apps/web && npx -y next@15 build)
+          if ! npx -y turbo@^2 run build --cache-dir=.turbo; then
+            echo "Turbo failed; trying direct Next.js build"
+            cd ./apps/dashboard-charts/apps/web
+            npx -y next@15 build
+          fi
