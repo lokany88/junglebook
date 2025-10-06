@@ -2,10 +2,9 @@ name: JungleBook CI
 
 on:
   push:
-    branches:
-      - main
-      - ci-upgrade
+    branches: [ "main", "ci-upgrade" ]
   pull_request:
+    branches: [ "main", "ci-upgrade" ]
   workflow_dispatch:
 
 jobs:
@@ -13,9 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_ENV: production
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -26,9 +25,14 @@ jobs:
       - name: Install dependencies
         run: npm install --workspaces --legacy-peer-deps
 
+      - name: Prebuild Self-Heal Hook
+        run: |
+          echo "🔧 Running JungleBook prebuild self-heal hook..."
+          npm --workspace ./apps/dashboard-charts/apps/web install next react react-dom --legacy-peer-deps
+          ls -la ./apps/dashboard-charts/apps/web/node_modules/.bin || true
+          echo "✅ Prebuild completed."
+
       - name: Run CI Heal Guard
-      - name: Prebuild Self-Heal
-        run: npm run prebuild
         run: bash .github/workflows/ci-heal-guard.sh
 
       - name: Build with Turbo
