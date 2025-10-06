@@ -2,9 +2,11 @@ name: JungleBook CI
 
 on:
   push:
-    branches: [ "main", "ci-upgrade" ]
+    branches:
+      - main
+      - ci-upgrade
   pull_request:
-    branches: [ "main", "ci-upgrade" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -13,8 +15,7 @@ jobs:
       NODE_ENV: production
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -25,22 +26,8 @@ jobs:
       - name: Install dependencies
         run: npm install --workspaces --legacy-peer-deps
 
-      - name: CI Auto-Heal Guard
+      - name: Run CI Heal Guard
         run: bash .github/workflows/ci-heal-guard.sh
 
-      - name: Build
+      - name: Build with Turbo
         run: npx turbo run build --cache-dir=.turbo
-
-      - name: Slack Notification
-        if: always()
-        run: |
-          if [ "$GITHUB_JOB_STATUS" = "success" ]; then
-            MSG="✅ JungleBook CI build succeeded"
-          else
-            MSG="❌ JungleBook CI build failed"
-          fi
-          curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"$MSG\"}" "$SLACK_WEBHOOK_URL"
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
