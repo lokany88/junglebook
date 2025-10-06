@@ -48,6 +48,7 @@
   "workspaces": [
     "apps/*",
     "apps/dashboard-charts/apps/*",
-    "packages/*"
+    "packages/*",
+    "packages/jb-cli"
   ]
 }
