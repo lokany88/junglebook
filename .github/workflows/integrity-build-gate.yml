@@ -1,0 +1,45 @@
+name: "Integrity Build Gate"
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify GPG signatures
+        run: |
+          echo "🔍 Verifying GPG signatures..."
+          git verify-commit HEAD || {
+            echo "❌ Commit is not GPG-signed. Rejecting build."
+            exit 1
+          }
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --workspaces --legacy-peer-deps
+
+      - name: Run build + lint
+        run: |
+          npm run lint || { echo "❌ ESLint failed"; exit 1; }
+          npm run build || { echo "❌ Build failed"; exit 1; }
+
+      - name: Integrity summary
+        run: |
+          echo "✅ All checks passed — code, lint, and GPG verification succeeded."
