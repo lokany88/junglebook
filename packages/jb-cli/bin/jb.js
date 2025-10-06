@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { createRequire } from 'module'
-import { execSync } from 'child_process'
 const require = createRequire(import.meta.url)
 const pkg = require('../package.json')
 
@@ -19,6 +18,7 @@ Usage:
 
 Commands:
   doctor       Run full repository self-audit
+  audit        Run npm audit and write audit-report.json
   help         Show this help text
   version      Print CLI version`)
   process.exit(0)
@@ -27,6 +27,12 @@ Commands:
 if (cmd === 'doctor') {
   const { default: runDoctor } = await import('./commands/doctor.js')
   runDoctor()
+  process.exit(0)
+}
+
+if (cmd === 'audit') {
+  const { default: runAudit } = await import('./commands/audit.js')
+  runAudit()
   process.exit(0)
 }
 
