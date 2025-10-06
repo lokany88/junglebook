@@ -14,7 +14,8 @@
     "test:ui": "vitest --ui --open",
     "test:watch": "vitest watch",
     "format": "prettier --write .",
-    "postinstall": "npm --workspace ./apps/dashboard-charts/apps/web install next react react-dom"
+    "postinstall": "npm --workspace ./apps/dashboard-charts/apps/web install next react react-dom",
+    "prebuild": "if [ ! -f node_modules/.bin/next ]; then npm --workspace ./apps/dashboard-charts/apps/web install next react react-dom --legacy-peer-deps; fi"
   },
   "devDependencies": {
     "@lhci/cli": "^0.15.1",

@@ -27,6 +27,8 @@ jobs:
         run: npm install --workspaces --legacy-peer-deps
 
       - name: Run CI Heal Guard
+      - name: Prebuild Self-Heal
+        run: npm run prebuild
         run: bash .github/workflows/ci-heal-guard.sh
 
       - name: Build with Turbo
