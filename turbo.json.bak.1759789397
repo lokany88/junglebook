@@ -1,0 +1,25 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"],
+      "cache": true
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "cache": true
+    },
+    "audit": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "test": {
+      "dependsOn": ["^test"],
+      "outputs": [],
+      "cache": true
+    }
+  },
+  "globalEnv": ["NODE_ENV", "TURBO_TOKEN", "GPG_PUBLIC_KEY_B64"]
+}
