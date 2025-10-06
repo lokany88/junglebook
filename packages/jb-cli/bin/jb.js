@@ -1,26 +1,34 @@
 #!/usr/bin/env node
-import { spawnSync } from "node:child_process";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { createRequire } from 'module'
+import { execSync } from 'child_process'
+const require = createRequire(import.meta.url)
+const pkg = require('../package.json')
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const cmd = process.argv[2];
+const args = process.argv.slice(2)
+const cmd = args[0] || 'help'
 
-if (!cmd) {
-  console.log("Usage: jb <command>");
-  process.exit(1);
+if (args.includes('--version') || cmd === 'version') {
+  console.log(pkg.version || '0.0.0')
+  process.exit(0)
 }
 
-async function run() {
-  if (cmd === "doctor") {
-    const mod = await import(path.join(__dirname, "commands/doctor.js"));
-    if (mod.default) await mod.default();
-    process.exit(0);
-  } else {
-    console.error(`Unknown command: ${cmd}`);
-    process.exit(1);
-  }
+if (args.includes('--help') || cmd === 'help') {
+  console.log(`Jungle Book CLI
+Usage:
+  npx jb <command>
+
+Commands:
+  doctor       Run full repository self-audit
+  help         Show this help text
+  version      Print CLI version`)
+  process.exit(0)
 }
 
-run();
+if (cmd === 'doctor') {
+  const { default: runDoctor } = await import('./commands/doctor.js')
+  runDoctor()
+  process.exit(0)
+}
+
+console.error('Unknown command:', cmd)
+process.exit(1)
