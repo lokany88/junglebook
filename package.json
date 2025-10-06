@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:ui": "vitest --ui --open",
     "test:watch": "vitest watch",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "postinstall": "npm --workspace ./apps/dashboard-charts/apps/web install next react react-dom"
   },
   "devDependencies": {
     "@lhci/cli": "^0.15.1",
@@ -33,13 +34,15 @@
     "husky": "^9.1.7",
     "jsdom": "^24.1.0",
     "lint-staged": "^16.2.3",
-    "next": "^15.5.4",
+    "next": "latest",
     "postcss": "^8.5.6",
     "prettier": "^3.3.3",
     "tailwindcss": "^4.1.14",
     "turbo": "^2.5.8",
     "typescript": "^5.5.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "react": "latest",
+    "react-dom": "latest"
   },
   "workspaces": [
     "apps/*",
