@@ -1,97 +1,121 @@
 import fs from 'fs'
 import { execSync } from 'child_process'
 
-export default function runDoctor() {
-  console.log('[jb-doctor] 🩺 Running full monorepo self-audit...')
+export default async function runDoctor() {
+  console.log('[jb-doctor] 🩺 Starting full self-heal + CI orchestrator...')
 
-  const turboPath = 'turbo.json'
   let modified = false
+  const turboPath = 'turbo.json'
 
-  // --- Turbo Config Self-Heal ---
+  // ---- TURBO CONFIG AUDIT ----
   try {
     const content = fs.readFileSync(turboPath, 'utf-8')
     const data = JSON.parse(content)
 
     if (!data.schemaVersion) {
-      console.log('[jb-doctor] Added missing schemaVersion.')
       data.schemaVersion = 1
       modified = true
+      console.log('[jb-doctor] Added schemaVersion=1')
     }
 
-    // jb-cli pipeline fix
     data.pipeline = data.pipeline || {}
     data.pipeline['jb-cli'] = data.pipeline['jb-cli'] || {}
+    data.pipeline['web'] = data.pipeline['web'] || {}
+
     if (!data.pipeline['jb-cli'].outputs) {
-      console.log('[jb-doctor] Added outputs key for jb-cli.')
       data.pipeline['jb-cli'].outputs = ['dist/**', 'lib/**', '*.js']
       modified = true
+      console.log('[jb-doctor] Added jb-cli.outputs')
     }
 
-    // web pipeline fix
-    data.pipeline['web'] = data.pipeline['web'] || {}
     if (!data.pipeline['web'].dependsOn) {
-      console.log('[jb-doctor] Linked web -> jb-cli build dependency.')
       data.pipeline['web'].dependsOn = ['jb-cli#build']
       modified = true
+      console.log('[jb-doctor] Linked web → jb-cli')
     }
+
     if (!data.pipeline['web'].outputs) {
-      console.log('[jb-doctor] Added outputs key for web.')
       data.pipeline['web'].outputs = ['.next/**', 'dist/**']
       modified = true
+      console.log('[jb-doctor] Added web.outputs')
     }
 
     if (modified) {
       fs.writeFileSync(turboPath, JSON.stringify(data, null, 2))
       console.log('[jb-doctor] ✅ turbo.json auto-healed.')
     } else {
-      console.log('[jb-doctor] ✅ turbo.json OK — no changes.')
+      console.log('[jb-doctor] ✅ turbo.json healthy.')
     }
   } catch (err) {
-    console.error('[jb-doctor] ⚠ Error reading turbo.json:', err.message)
+    console.error('[jb-doctor] ⚠ turbo.json error:', err.message)
   }
 
-  // --- Package Audit ---
+  // ---- PACKAGE JSON VALIDATION ----
   try {
-    console.log('[jb-doctor] 🔍 Validating package.json consistency...')
-    const packageFiles = execSync('find . -name package.json', { encoding: 'utf-8' })
+    const pkgs = execSync('find . -name package.json', { encoding: 'utf-8' })
       .split('\n')
       .filter(Boolean)
-    for (const file of packageFiles) {
+    for (const file of pkgs) {
       try {
         JSON.parse(fs.readFileSync(file, 'utf-8'))
       } catch {
-        console.log(`[jb-doctor] ⚠ Invalid JSON in ${file}, auto-fixing via jq.`)
+        console.log(`[jb-doctor] ⚠ Invalid JSON in ${file}, fixing via jq.`)
         execSync(`jq . ${file} > tmp.json && mv tmp.json ${file}`)
         modified = true
       }
     }
   } catch (err) {
-    console.error('[jb-doctor] ⚠ Package audit error:', err.message)
+    console.error('[jb-doctor] ⚠ Package validation error:', err.message)
   }
 
-  // --- Auto Commit + Push ---
+  // ---- COMMIT & PUSH ----
   if (modified) {
     try {
-      execSync('git add turbo.json', { stdio: 'inherit' })
-      execSync('git add .', { stdio: 'inherit' })
-      execSync('git commit -S -m "chore(doctor): auto-heal turbo.json and workspace configs"', { stdio: 'inherit' })
+      execSync('git add -A', { stdio: 'inherit' })
+      execSync('git commit -S -m "chore(doctor): auto-heal turbo + workspace configs"', { stdio: 'inherit' })
       execSync('git push -u origin main', { stdio: 'inherit' })
-      console.log('[jb-doctor] ✅ Auto-patched, signed, and pushed to main.')
+      console.log('[jb-doctor] ✅ Auto-heal committed and pushed.')
     } catch (err) {
-      console.error('[jb-doctor] ⚠ Commit/push failed:', err.message)
+      console.error('[jb-doctor] ⚠ Git push failed:', err.message)
     }
   } else {
-    console.log('[jb-doctor] No file changes to commit.')
+    console.log('[jb-doctor] No new changes to push.')
   }
 
-  // --- Auto Run Audit ---
+  // ---- LOCAL AUDIT ----
   try {
-    console.log('[jb-doctor] 🔄 Running jb audit for verification...')
+    console.log('[jb-doctor] 🔄 Running jb audit...')
     execSync('npx jb audit', { stdio: 'inherit' })
-  } catch (err) {
-    console.error('[jb-doctor] ⚠ jb audit encountered warnings:', err.message)
+  } catch {
+    console.log('[jb-doctor] ⚠ jb audit exited non-zero, continuing.')
   }
 
-  console.log('[jb-doctor] 🧠 All checks completed successfully.')
+  // ---- REMOTE CI TRIGGER ----
+  try {
+    console.log('[jb-doctor] ☁️ Triggering JB CLI Smoke workflow...')
+    const runId = execSync('gh workflow run "JB CLI Smoke" --ref main --json run -q .run.id', { encoding: 'utf-8' }).trim()
+    console.log(`[jb-doctor] 🧩 Workflow run ID: ${runId}`)
+    console.log('[jb-doctor] ⏳ Waiting for CI completion...')
+
+    // Poll until finished
+    let status = ''
+    for (let i = 0; i < 60; i++) { // ~10 minutes
+      status = execSync(`gh run view ${runId} --json status,conclusion -q '.status + ":" + (.conclusion // "pending")'`, { encoding: 'utf-8' }).trim()
+      console.log(`[jb-doctor] CI status: ${status}`)
+      if (status.startsWith('completed')) break
+      await new Promise(r => setTimeout(r, 10000))
+    }
+
+    const conclusion = status.split(':')[1]
+    if (conclusion === 'success') {
+      console.log('[jb-doctor] ✅ CI PASSED — Repository verified healthy.')
+    } else {
+      console.log(`[jb-doctor] ❌ CI completed with status: ${conclusion}`)
+    }
+  } catch (err) {
+    console.error('[jb-doctor] ⚠ Could not trigger or monitor CI:', err.message)
+  }
+
+  console.log('[jb-doctor] 🧠 Complete.')
   process.exit(0)
 }
