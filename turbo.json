@@ -1,34 +1,16 @@
 {
-  "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"],
-      "cache": true
+      "outputs": [".next/**", "dist/**"]
     },
     "lint": {
-      "dependsOn": ["^lint"],
-      "cache": true
-    },
-    "audit": {
       "dependsOn": [],
-      "cache": false
+      "outputs": []
     },
-    "test": {
-      "dependsOn": ["^test"],
-      "outputs": [],
-      "cache": true
+    "dev": {
+      "dependsOn": []
     }
   },
-  "globalEnv": ["NODE_ENV", "TURBO_TOKEN", "GPG_PUBLIC_KEY_B64"],
-  "tasks": {
-    "jb-cli": {
-      "outputs": ["dist/**", "lib/**", "*.js"]
-    },
-    "web": {
-      "dependsOn": ["jb-cli#build"],
-      "outputs": [".next/**", "dist/**"]
-    }
-  }
+  "globalEnv": ["NODE_ENV"]
 }
