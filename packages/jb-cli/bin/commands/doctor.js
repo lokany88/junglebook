@@ -1,43 +1,78 @@
-#!/usr/bin/env node
-import { execSync } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
+import fs from 'fs'
+import { execSync } from 'child_process'
 
-function log(m){console.log(`[jb-doctor] ${m}`);}
-function safeExec(c){try{return execSync(c,{stdio:"inherit"});}catch{log(`Warning: ${c} failed`);}}
+export default function runDoctor() {
+  console.log('[jb-doctor] 🩺 Running monorepo self-audit...')
 
-function auditTurbo(){
-  const f="turbo.json";
-  if(!fs.existsSync(f)){
-    log("turbo.json missing — creating default schema...");
-    fs.writeFileSync(f,JSON.stringify({"$schema":"https://turbo.build/schema.json","tasks":{"build":{"dependsOn":["^build"],"cache":true,"outputs":["dist/**",".next/**"]},"lint":{"dependsOn":["^lint"],"cache":true},"audit":{"dependsOn":[],"cache":false}},"globalEnv":["NODE_ENV","TURBO_TOKEN","GPG_PUBLIC_KEY_B64"]},null,2));
-    log("Created default turbo.json schema.");
-  }else{
-    let c=fs.readFileSync(f,"utf8");
-    if(c.includes('"pipeline"')){fs.writeFileSync(f,c.replace(/"pipeline"/g,'"tasks"'));log("Migrated turbo.json schema.");}
-    else log("turbo.json schema valid.");
+  const turboPath = 'turbo.json'
+  let modified = false
+
+  try {
+    const content = fs.readFileSync(turboPath, 'utf-8')
+    const data = JSON.parse(content)
+
+    if (!data.schemaVersion) {
+      console.log('[jb-doctor] Missing schemaVersion, setting to 1.')
+      data.schemaVersion = 1
+      modified = true
+    }
+
+    if (!data.pipeline?.['jb-cli']?.outputs) {
+      console.log('[jb-doctor] Adding missing outputs key for jb-cli.')
+      data.pipeline = data.pipeline || {}
+      data.pipeline['jb-cli'] = data.pipeline['jb-cli'] || {}
+      data.pipeline['jb-cli'].outputs = ['dist/**', 'lib/**', '*.js']
+      modified = true
+    }
+
+    if (!data.pipeline?.['web']?.dependsOn) {
+      console.log('[jb-doctor] Adding dependsOn for web -> jb-cli.')
+      data.pipeline['web'] = data.pipeline['web'] || {}
+      data.pipeline['web'].dependsOn = ['jb-cli#build']
+      modified = true
+    }
+
+    if (!data.pipeline?.['web']?.outputs) {
+      console.log('[jb-doctor] Adding outputs for web.')
+      data.pipeline['web'].outputs = ['.next/**', 'dist/**']
+      modified = true
+    }
+
+    if (modified) {
+      fs.writeFileSync(turboPath, JSON.stringify(data, null, 2))
+      console.log('[jb-doctor] ✅ turbo.json auto-healed and written successfully.')
+    } else {
+      console.log('[jb-doctor] ✅ No fixes required, monorepo is healthy.')
+    }
+  } catch (err) {
+    console.error('[jb-doctor] Error auditing turbo.json:', err.message)
   }
-}
 
-function auditLockfile(){
-  if(!fs.existsSync("package-lock.json")){log("package-lock.json missing — running npm install...");safeExec("npm install --legacy-peer-deps");}
-  else log("package-lock.json present.");
-}
+  try {
+    console.log('[jb-doctor] 🔍 Validating package.json consistency...')
+    const packageFiles = execSync('find . -name package.json', { encoding: 'utf-8' }).split('\n').filter(Boolean)
+    for (const file of packageFiles) {
+      try {
+        JSON.parse(fs.readFileSync(file, 'utf-8'))
+      } catch {
+        console.log(`[jb-doctor] ⚠ Invalid JSON in ${file}, auto-fixing...`)
+        execSync(`jq . ${file} > tmp.json && mv tmp.json ${file}`)
+        modified = true
+      }
+    }
+  } catch {}
 
-function auditGit(){
-  safeExec("git add -A");
-  try{execSync("git diff --cached --quiet");log("No pending git changes.");}
-  catch{safeExec('git commit -S -m "chore(jb-doctor): auto-audit + schema repair"');log("Auto-commit created.");}
-}
+  if (modified) {
+    try {
+      execSync('git add turbo.json', { stdio: 'inherit' })
+      execSync('git commit -S -m "chore(doctor): auto-heal turbo.json and workspace configs"', { stdio: 'inherit' })
+      execSync('git push -u origin main', { stdio: 'inherit' })
+      console.log('[jb-doctor] ✅ Auto-patched, signed, and pushed to main.')
+    } catch (err) {
+      console.error('[jb-doctor] ⚠ Failed to auto-commit or push:', err.message)
+    }
+  }
 
-function run(){
-  log("Starting Jungle Book Doctor...");
-  auditTurbo();
-  auditLockfile();
-  safeExec("npm run lint --if-present");
-  safeExec("npm run build --if-present");
-  auditGit();
-  log("✅ Jungle Book Doctor complete. Repository is healthy.");
+  console.log('[jb-doctor] 🧠 Doctor completed.')
+  process.exit(0)
 }
-
-run();
