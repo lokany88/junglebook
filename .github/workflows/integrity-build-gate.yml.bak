@@ -1,0 +1,85 @@
+name: Integrity Build Gate
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Import GPG public key
+        env:
+          GPG_PUBLIC_KEY_B64: ${{ secrets.GPG_PUBLIC_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GPG_PUBLIC_KEY_B64:-}" ]; then
+            echo "Missing secret: GPG_PUBLIC_KEY_B64"
+            exit 1
+          fi
+          echo "$GPG_PUBLIC_KEY_B64" | base64 --decode | gpg --batch --import
+          gpg --batch --list-keys || true
+
+      - name: Determine commit range
+        id: range
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+          echo "Commit range: $BASE..$HEAD"
+
+      - name: Verify GPG signatures for each commit in range
+        run: |
+          set -euo pipefail
+          BASE="${{ steps.range.outputs.base }}"
+          HEAD="${{ steps.range.outputs.head }}"
+          COMMITS="$(git rev-list --no-merges "$BASE..$HEAD")"
+          if [ -z "$COMMITS" ]; then
+            echo "No commits to verify."
+            exit 0
+          fi
+          FAIL=0
+          for c in $COMMITS; do
+            echo "Verifying $c"
+            if ! git verify-commit "$c"; then
+              echo "Signature verification failed for $c"
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" -ne 0 ]; then
+            echo "One or more commits failed GPG verification."
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci || npm i
+
+      - name: Lint
+        run: npm run lint || true
+
+      - name: Build
+        run: npm run build

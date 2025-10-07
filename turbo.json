@@ -21,5 +21,15 @@
       "cache": true
     }
   },
-  "globalEnv": ["NODE_ENV", "TURBO_TOKEN", "GPG_PUBLIC_KEY_B64"]
+  "globalEnv": ["NODE_ENV", "TURBO_TOKEN", "GPG_PUBLIC_KEY_B64"],
+  "schemaVersion": 1,
+  "pipeline": {
+    "jb-cli": {
+      "outputs": ["dist/**", "lib/**", "*.js"]
+    },
+    "web": {
+      "dependsOn": ["jb-cli#build"],
+      "outputs": [".next/**", "dist/**"]
+    }
+  }
 }

@@ -1,0 +1,33 @@
+name: JB CLI Smoke
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install (root workspaces)
+        run: npm ci || npm i
+
+      - name: CLI help/version
+        run: |
+          npx jb --help
+          npx jb --version
+
+      - name: Audit (writes audit-report.json)
+        run: |
+          npx jb audit
+          test -f audit-report.json && echo "audit-report.json present"
